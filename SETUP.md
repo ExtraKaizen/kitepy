@@ -19,8 +19,9 @@ pip install pytest
 ## Step 2: Install kitepy (Development Mode)
 
 ```bash
-# Clone or navigate to the kitepy directory
-cd /path/to/kitepy
+# Clone the repository
+git clone https://github.com/ExtraKaizen/kitepy
+cd kitepy
 
 # Install in development mode
 pip install -e .
@@ -168,24 +169,15 @@ Make sure your directory looks like this:
 ```
 kitepy/
 ├── kitepy/
-│   ├── __init__.py
-│   ├── config.py
-│   ├── presets.py
-│   ├── utils.py
-│   ├── wrappers.py
-│   ├── data.py
-│   ├── engine.py
-│   └── api/
-│       ├── __init__.py
-│       ├── base.py
-│       └── vision.py
-├── tests/
-│   └── test_cnn.py
-├── examples/
-│   └── quickstart_cnn.py
-├── pyproject.toml
-├── README.md
-└── SETUP.md (this file)
+│   ├── core/           # Core infrastructure
+│   ├── pillars/        # Domain-specific modules (Vision)
+│   └── __init__.py     # Public API exports
+├── tests/              # Test suite
+├── examples/           # Usage examples
+├── docs/               # Mintlify documentation
+├── pyproject.toml      # Package configuration
+├── README.md           # Main documentation
+└── SETUP.md            # This file
 ```
 
 ---
@@ -195,8 +187,8 @@ kitepy/
 Once everything works:
 
 1. ✅ CNN module is ready!
-2. ⏭️ Continue to Phase 2: Vision Transformers
-3. ⏭️ Continue to Phase 3: LLM module
+2. ⏭️ Next: Vision Transformers (Coming Soon)
+3. ⏭️ Planned: LLM and VLM support
 
 ---
 

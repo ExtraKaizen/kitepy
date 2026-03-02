@@ -35,7 +35,7 @@ pip install kitepy[llm]
 pip install kitepy[all]
 
 # Development install
-git clone https://github.com/yourusername/kitepy
+git clone https://github.com/ExtraKaizen/kitepy
 cd kitepy
 pip install -e .
 ```
@@ -278,11 +278,11 @@ kitepy/
 
 ## Development Roadmap
 
-- [x] **Phase 1**: CNN Module (Week 1-3) ✅
-- [ ] **Phase 2**: Vision Transformers (Week 4-5)
-- [ ] **Phase 3**: LLM Module (Week 6-10)
-- [ ] **Phase 4**: VLM Module (Week 11-13)
-- [ ] **Phase 5**: Audio & Diffusion (Week 14+)
+- [x] **Phase 1**: CNN Module ✅
+- [ ] **Phase 2**: Vision Transformers (Coming Soon)
+- [ ] **Phase 3**: LLM Module (Planned)
+- [ ] **Phase 4**: VLM Module (Planned)
+- [ ] **Phase 5**: Audio & Diffusion (Planned)
 
 ---
 
@@ -297,7 +297,7 @@ kitepy/
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](https://github.com/ExtraKaizen/kitepy/blob/main/CONTRIBUTING.md) for guidelines.
 
 ---
 
@@ -312,11 +312,11 @@ MIT License - see [LICENSE](LICENSE) for details.
 If you use kitepy in your research, please cite:
 
 ```bibtex
-@software{kitepy2024,
+@software{kitepy2026,
   title={kitepy: Dead Simple Deep Learning},
-  author={Your Name},
-  year={2024},
-  url={https://github.com/yourusername/kitepy}
+  author={ExtraKaizen},
+  year={2026},
+  url={https://github.com/ExtraKaizen/kitepy}
 }
 ```
 
