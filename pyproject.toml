@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kitepy"
+version = "0.1.0"
+description = "Dead Simple Deep Learning - Build and train models with minimal code"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "you@example.com"}
+]
+keywords = ["deep learning", "machine learning", "pytorch", "neural networks", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Core dependencies (minimal - required for CNN)
+dependencies = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "timm>=0.9.0",
+    "pyyaml>=6.0",
+    "numpy>=1.21.0",
+]
+
+[project.optional-dependencies]
+# For LLM support (Phase 3)
+llm = [
+    "transformers>=4.30.0",
+    "datasets>=2.12.0",
+    "tokenizers>=0.13.0",
+]
+
+# For distributed training
+distributed = [
+    "deepspeed>=0.9.0",
+    "accelerate>=0.20.0",
+]
+
+# For experiment tracking
+tracking = [
+    "wandb>=0.15.0",
+    "tensorboard>=2.13.0",
+]
+
+# For advanced features
+advanced = [
+    "flash-attn>=2.0.0",
+    "bitsandbytes>=0.41.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.3.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.3.0",
+    "flake8>=6.0.0",
+    "mypy>=1.3.0",
+    "isort>=5.12.0",
+]
+
+# All optional dependencies
+all = [
+    "transformers>=4.30.0",
+    "datasets>=2.12.0",
+    "tokenizers>=0.13.0",
+    "deepspeed>=0.9.0",
+    "accelerate>=0.20.0",
+    "wandb>=0.15.0",
+    "tensorboard>=2.13.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/kitepy"
+Documentation = "https://kitepy.readthedocs.io"
+Repository = "https://github.com/yourusername/kitepy"
+"Bug Tracker" = "https://github.com/yourusername/kitepy/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kitepy*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
