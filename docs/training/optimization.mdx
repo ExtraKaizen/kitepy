@@ -1,0 +1,342 @@
+---
+title: 'Optimization'
+description: 'Optimizers, schedulers, and training efficiency'
+icon: 'chart-line'
+---
+
+## Optimizers
+
+kitepy supports all major PyTorch optimizers plus some specialized ones.
+
+### AdamW (Default)
+
+The default optimizer, with decoupled weight decay:
+
+```python
+model.train("cifar10",
+    optimizer="adamw",
+    lr=0.001,
+    weight_decay=0.05,
+)
+```
+
+### SGD with Momentum
+
+Classic optimizer, often best for final accuracy:
+
+```python
+model.train("imagenet",
+    optimizer="sgd",
+    lr=0.1,
+    weight_decay=1e-4,
+    optimizer_kwargs={"momentum": 0.9, "nesterov": True}
+)
+```
+
+### Adam
+
+Original Adam without decoupled weight decay:
+
+```python
+model.train("cifar10", optimizer="adam", lr=0.001)
+```
+
+### Other Built-in Optimizers
+
+```python
+# RMSprop
+model.train("cifar10", optimizer="rmsprop", lr=0.01)
+
+# Adadelta
+model.train("cifar10", optimizer="adadelta", lr=1.0)
+
+# Adagrad
+model.train("cifar10", optimizer="adagrad", lr=0.01)
+
+# Adamax
+model.train("cifar10", optimizer="adamax", lr=0.002)
+
+# NAdam (Adam with Nesterov momentum)
+model.train("cifar10", optimizer="nadam", lr=0.001)
+
+# RAdam (Rectified Adam)
+model.train("cifar10", optimizer="radam", lr=0.001)
+```
+
+### Lion Optimizer
+
+Modern optimizer that's often faster and more memory-efficient:
+
+```python
+# Requires: pip install lion-pytorch
+model.train("imagenet",
+    optimizer="lion",
+    lr=1e-4,  # Lower LR than Adam
+    weight_decay=1e-1,  # Higher WD than Adam
+)
+```
+
+### Using Custom Optimizers
+
+```python
+from torch.optim import LBFGS
+
+model._build_model()
+optimizer = LBFGS(model.model.parameters(), lr=0.1)
+model.train("cifar10", optimizer=optimizer)
+```
+
+## Learning Rate Schedulers
+
+### Cosine Annealing (Default)
+
+Smoothly decreases LR following a cosine curve:
+
+```python
+model.train("cifar10",
+    scheduler="cosine",
+    # LR goes from lr to 0 over training
+)
+```
+
+### Linear Decay
+
+Linear decrease from start to end:
+
+```python
+model.train("cifar10",
+    scheduler="linear",
+    scheduler_kwargs={"end_factor": 0.01}  # End at 1% of initial LR
+)
+```
+
+### Step Decay
+
+Decrease LR by factor at fixed intervals:
+
+```python
+model.train("cifar10",
+    scheduler="step",
+    scheduler_kwargs={
+        "step_size": 30,  # Every 30 epochs
+        "gamma": 0.1      # Multiply by 0.1
+    }
+)
+```
+
+### Multi-Step Decay
+
+Decrease at specific epochs:
+
+```python
+model.train("imagenet",
+    scheduler="multistep",
+    scheduler_kwargs={
+        "milestones": [30, 60, 90],  # Epochs to decay
+        "gamma": 0.1
+    }
+)
+```
+
+### Exponential Decay
+
+Multiply by gamma every epoch:
+
+```python
+model.train("cifar10",
+    scheduler="exponential",
+    scheduler_kwargs={"gamma": 0.95}
+)
+```
+
+### OneCycleLR
+
+Super-convergence friendly schedule:
+
+```python
+model.train("cifar10",
+    scheduler="onecycle",
+    lr=0.1,  # This becomes max_lr
+)
+```
+
+### Warmup + Cosine
+
+Warmup followed by cosine decay:
+
+```python
+model.train("imagenet",
+    scheduler="warmup_cosine",
+    scheduler_kwargs={"warmup_steps": 5000}
+)
+```
+
+### ReduceLROnPlateau
+
+Reduce when validation loss plateaus:
+
+```python
+model.train("cifar10",
+    scheduler="plateau",
+    scheduler_kwargs={
+        "patience": 5,
+        "factor": 0.5
+    }
+)
+```
+
+### No Scheduler
+
+Constant learning rate:
+
+```python
+model.train("cifar10", scheduler="none")
+```
+
+## Learning Rate Finding
+
+Automatically find a good learning rate:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18")
+suggested_lr = model.find_lr("cifar10")
+print(f"Suggested LR: {suggested_lr}")
+
+# Use the suggested LR
+model.train("cifar10", lr=suggested_lr)
+```
+
+The LR finder:
+1. Starts with a very small LR
+2. Gradually increases while training
+3. Plots loss vs LR
+4. Suggests LR where loss decreases fastest
+
+## Gradient Accumulation
+
+Train with larger effective batch size:
+
+```python
+model.train("imagenet",
+    batch_size=32,                    # Fits in GPU memory
+    gradient_accumulation_steps=8,    # Effective batch: 256
+)
+```
+
+This is mathematically equivalent to training with batch_size=256, but uses only 32 samples of GPU memory.
+
+## Mixed Precision Training
+
+Use FP16/BF16 for faster training:
+
+```python
+# FP16 (default on CUDA)
+model.train("imagenet", mixed_precision=True)
+
+# BF16 (requires Ampere+ GPU)
+model.train("imagenet", mixed_precision="bf16")
+
+# Disable mixed precision
+model.train("imagenet", mixed_precision=False)
+```
+
+Benefits:
+- 2-3x faster training
+- Half the memory usage
+- Same accuracy
+
+## Gradient Clipping
+
+Prevent exploding gradients:
+
+```python
+model.train("cifar10", max_grad_norm=1.0)  # Default
+```
+
+Especially important for:
+- Transformers
+- RNNs
+- Very deep networks
+
+## Weight Decay
+
+L2 regularization:
+
+```python
+# Standard weight decay
+model.train("cifar10",
+    optimizer="adamw",
+    weight_decay=0.05,  # 5%
+)
+
+# Different weight decays for different param groups
+# (Coming in Phase 2)
+```
+
+<Tip>
+AdamW uses decoupled weight decay, which works better than L2 regularization in Adam.
+</Tip>
+
+## Label Smoothing
+
+Soften hard labels for better generalization:
+
+```python
+model.train("cifar10",
+    label_smoothing=0.1,  # 10% uniform distribution
+)
+```
+
+Instead of [0, 0, 1, 0, ...], uses [0.01, 0.01, 0.91, 0.01, ...]
+
+## Best Practices
+
+### For CNNs
+
+```python
+model.train("imagenet",
+    optimizer="sgd",
+    lr=0.1,
+    weight_decay=1e-4,
+    scheduler="multistep",
+    scheduler_kwargs={"milestones": [30, 60, 90], "gamma": 0.1},
+    optimizer_kwargs={"momentum": 0.9, "nesterov": True},
+)
+```
+
+### For Vision Transformers
+
+```python
+model.train("imagenet",
+    optimizer="adamw",
+    lr=1e-4,
+    weight_decay=0.05,
+    scheduler="cosine",
+    warmup_steps=10000,
+)
+```
+
+### For Fine-Tuning
+
+```python
+model.train("my_dataset",
+    optimizer="adamw",
+    lr=1e-5,  # Lower LR for pretrained models
+    weight_decay=0.01,
+    scheduler="cosine",
+)
+```
+
+### For Small Datasets
+
+```python
+model.train("small_dataset",
+    optimizer="adamw",
+    lr=1e-3,
+    weight_decay=0.1,  # Stronger regularization
+    label_smoothing=0.1,
+    augmentation="randaugment",
+)
+```

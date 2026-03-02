@@ -1,0 +1,295 @@
+---
+title: 'Architecture'
+description: 'How kitepy is organized internally'
+icon: 'sitemap'
+---
+
+## High-Level Architecture
+
+kitepy is organized into a modular architecture with clear separation of concerns:
+
+```
+kitepy/
+├── core/           # Shared infrastructure
+│   ├── base.py     # BaseModel class
+│   ├── config.py   # Configuration system
+│   ├── engine.py   # Training engine
+│   ├── callbacks.py # Training callbacks
+│   ├── metrics.py  # Metric tracking
+│   ├── presets.py  # Model & dataset presets
+│   └── utils.py    # Utility functions
+│
+└── pillars/        # Domain-specific modules
+    ├── vision/     # Computer vision
+    │   ├── models.py   # CNN, Transformer, Vision
+    │   ├── data.py     # Data loading
+    │   └── wrappers.py # timm integration
+    ├── language/   # Language models (coming soon)
+    ├── multimodal/ # VLMs (coming soon)
+    ├── audio/      # Audio models (coming soon)
+    └── generative/ # Diffusion models (coming soon)
+```
+
+## Core Components
+
+### BaseModel
+
+All model APIs (CNN, Transformer, LLM, etc.) inherit from `BaseModel`. This provides:
+
+- `.train()` - Training
+- `.evaluate()` - Evaluation
+- `.predict()` - Inference
+- `.save()` / `.load()` - Persistence
+- `.describe()` - Inspection
+- `.freeze_backbone()` / `.unfreeze()` - Transfer learning
+- `.profile()` - Performance profiling
+- `.export()` - Model export
+
+```python
+class BaseModel:
+    modality: str  # "vision", "language", etc.
+    
+    def __init__(self, model, config, **kwargs):
+        self.config = self._build_config(model, config, **kwargs)
+        self.model = None  # Built lazily
+    
+    def train(self, data, epochs=None, **kwargs):
+        if self.model is None:
+            self._build_model()
+        # ... training logic
+    
+    def _build_model(self):
+        raise NotImplementedError("Subclasses must implement")
+```
+
+### Configuration System
+
+kitepy uses dataclasses for type-safe configuration:
+
+```python
+@dataclass
+class TrainingConfig(BaseConfig):
+    epochs: int = 10
+    batch_size: int = 32
+    lr: float = 1e-3
+    optimizer: str = "adamw"
+    scheduler: str = "cosine"
+    # ... many more options
+
+@dataclass
+class CNNConfig(ModelConfig):
+    arch: str = "resnet"
+    depth: int = 18
+    num_classes: int = 1000
+    pretrained: bool = False
+    # ... architecture-specific options
+```
+
+Configuration priority (highest to lowest):
+1. **kwargs** passed directly to functions
+2. **User config** (dict, config object, or YAML file)
+3. **Preset** (from registry)
+4. **Default** (from config class)
+
+### Training Engine
+
+The `Engine` class handles the training loop:
+
+```python
+class Engine:
+    def __init__(self, model, config, modality):
+        self.model = model
+        self.config = config
+        self.optimizer = self._create_optimizer()
+        self.criterion = self._create_loss_function()
+    
+    def train(self, train_loader, val_loader=None):
+        for epoch in range(self.config.epochs):
+            train_loss, train_acc = self._train_epoch(train_loader)
+            val_loss, val_acc = self._validate(val_loader)
+            # ... checkpointing, logging, etc.
+```
+
+Features:
+- Automatic mixed precision (AMP)
+- Gradient clipping
+- Learning rate scheduling
+- Checkpointing
+- Early stopping
+- Progress logging
+
+### Preset Registry
+
+Presets are predefined configurations for models and datasets:
+
+```python
+CNN_PRESETS = {
+    "resnet18": {"arch": "resnet", "depth": 18},
+    "resnet50": {"arch": "resnet", "depth": 50},
+    "efficientnet_b0": {"arch": "efficientnet", "depth": 0},
+    # ... 30+ presets
+}
+
+DATASET_PRESETS = {
+    "cifar10": {"num_classes": 10, "img_size": 32},
+    "imagenet": {"num_classes": 1000, "img_size": 224},
+    # ... more datasets
+}
+```
+
+Users can register custom presets:
+
+```python
+from kitepy import register_preset
+
+register_preset("my_custom_resnet", {
+    "arch": "resnet",
+    "depth": 101,
+    "width_multiplier": 2.0,
+}, modality="cnn")
+
+# Now use it
+CNN("my_custom_resnet").train("imagenet")
+```
+
+## Pillars
+
+Pillars are domain-specific modules that implement the API for different modalities.
+
+### Vision Pillar
+
+The vision pillar provides CNN and Transformer classes:
+
+```python
+# kitepy/pillars/vision/models.py
+
+class CNN(BaseModel):
+    modality = "vision"
+    default_config_class = CNNConfig
+    
+    def _build_model(self):
+        # Uses timm for model creation
+        self.model = create_timm_model(
+            model_name=self.model_name,
+            num_classes=self.config.num_classes,
+            pretrained=self.config.pretrained,
+        )
+
+class Transformer(BaseModel):
+    modality = "vision"
+    default_config_class = TransformerConfig
+    
+    def _build_model(self):
+        # Also uses timm for ViT, Swin, etc.
+        self.model = create_timm_model(...)
+```
+
+### Library Wrappers
+
+kitepy wraps external libraries for model creation:
+
+```python
+# kitepy/pillars/vision/wrappers.py
+
+def create_timm_model(model_name, num_classes, pretrained, **kwargs):
+    import timm
+    return timm.create_model(
+        model_name,
+        pretrained=pretrained,
+        num_classes=num_classes,
+        **kwargs
+    )
+```
+
+## Data Flow
+
+Here's how data flows through kitepy during training:
+
+```
+User Code:
+    CNN("resnet18").train("cifar10", epochs=10)
+                        ↓
+                  BaseModel.train()
+                        ↓
+            ┌─────────────────────────┐
+            │    Configuration        │
+            │  - Merge presets        │
+            │  - Apply overrides      │
+            │  - Validate             │
+            └─────────────────────────┘
+                        ↓
+            ┌─────────────────────────┐
+            │    Model Creation       │
+            │  - Look up preset       │
+            │  - Call timm            │
+            │  - Apply modifications  │
+            └─────────────────────────┘
+                        ↓
+            ┌─────────────────────────┐
+            │    Data Loading         │
+            │  - Resolve dataset      │
+            │  - Apply transforms     │
+            │  - Create DataLoaders   │
+            └─────────────────────────┘
+                        ↓
+            ┌─────────────────────────┐
+            │    Training (Engine)    │
+            │  - Training loop        │
+            │  - Validation           │
+            │  - Checkpointing        │
+            │  - Logging              │
+            └─────────────────────────┘
+                        ↓
+                  Trained Model
+```
+
+## Extension Points
+
+kitepy is designed to be extensible:
+
+### Custom Callbacks
+
+```python
+from kitepy import Callback
+
+class MyCallback(Callback):
+    def on_epoch_end(self, trainer, epoch, metrics, **kwargs):
+        print(f"Epoch {epoch}: {metrics}")
+
+model.train("cifar10", callbacks=[MyCallback()])
+```
+
+### Custom Loss Functions
+
+```python
+import torch.nn as nn
+
+class FocalLoss(nn.Module):
+    def forward(self, inputs, targets):
+        # Custom loss implementation
+        pass
+
+model.train("cifar10", loss=FocalLoss())
+```
+
+### Custom Optimizers
+
+```python
+from lion_pytorch import Lion
+
+model.train("cifar10", optimizer=Lion)
+```
+
+### Custom Models
+
+```python
+import torch.nn as nn
+
+my_model = nn.Sequential(
+    nn.Conv2d(3, 64, 3),
+    nn.ReLU(),
+    # ...
+)
+
+CNN(my_model).train("cifar10")
+```

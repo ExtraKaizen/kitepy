@@ -1,0 +1,146 @@
+---
+title: 'Engine'
+description: 'API reference for the training Engine'
+icon: 'gears'
+---
+
+## Overview
+
+The `Engine` class handles the training loop. It's used internally by model classes but can be accessed directly for advanced use cases.
+
+```python
+from kitepy.core.engine import Engine
+```
+
+## Constructor
+
+```python
+Engine(
+    model: nn.Module,
+    config: TrainingConfig,
+    modality: str = "vision"
+)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | `nn.Module` | PyTorch model to train |
+| `config` | `TrainingConfig` | Training configuration |
+| `modality` | `str` | Modality ("vision", "language", "multimodal") |
+
+## Methods
+
+### train()
+
+Run the training loop.
+
+```python
+engine.train(
+    train_loader: DataLoader,
+    val_loader: Optional[DataLoader] = None
+) -> Tuple[nn.Module, List[Dict[str, Any]]]
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `train_loader` | `DataLoader` | Training data loader |
+| `val_loader` | `DataLoader` | Validation data loader (optional) |
+
+#### Returns
+
+Tuple of (trained model, training history).
+
+#### Example
+
+```python
+from kitepy.core.engine import Engine
+from kitepy import TrainingConfig
+
+config = TrainingConfig(epochs=10, lr=0.001)
+engine = Engine(model, config, modality="vision")
+
+trained_model, history = engine.train(train_loader, val_loader)
+```
+
+---
+
+## Internal Methods
+
+### _train_epoch()
+
+Run a single training epoch.
+
+```python
+engine._train_epoch(train_loader: DataLoader) -> Tuple[float, float]
+```
+
+Returns (train_loss, train_accuracy).
+
+### _validate()
+
+Run validation.
+
+```python
+engine._validate(val_loader: DataLoader) -> Tuple[float, float]
+```
+
+Returns (val_loss, val_accuracy).
+
+### _create_optimizer()
+
+Create the optimizer based on config.
+
+```python
+engine._create_optimizer() -> torch.optim.Optimizer
+```
+
+### _create_scheduler()
+
+Create the learning rate scheduler.
+
+```python
+engine._create_scheduler() -> Optional[LRScheduler]
+```
+
+### _create_loss_function()
+
+Create the loss function for the modality.
+
+```python
+engine._create_loss_function() -> nn.Module
+```
+
+---
+
+## Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `model` | `nn.Module` | The model being trained |
+| `config` | `TrainingConfig` | Training configuration |
+| `optimizer` | `Optimizer` | The optimizer |
+| `scheduler` | `LRScheduler` | The learning rate scheduler |
+| `criterion` | `nn.Module` | The loss function |
+| `scaler` | `GradScaler` | AMP gradient scaler |
+| `device` | `torch.device` | Training device |
+
+---
+
+## Usage Notes
+
+In most cases, you don't need to use `Engine` directly. The model classes (`CNN`, `Transformer`) handle this for you:
+
+```python
+# This internally uses Engine
+model = CNN("resnet18")
+model.train("cifar10")
+```
+
+Use `Engine` directly when you need:
+- Custom training logic
+- Integration with external training frameworks
+- Fine-grained control over the training loop

@@ -1,0 +1,339 @@
+---
+title: 'Hyperparameter Tuning'
+description: 'Automatically find the best hyperparameters'
+icon: 'gears'
+---
+
+## Overview
+
+kitepy provides tools to automatically search for optimal hyperparameters, helping you get the best performance from your models.
+
+## Learning Rate Finder
+
+Find the optimal learning rate before training:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18")
+suggested_lr = model.find_lr("cifar10")
+
+print(f"Suggested LR: {suggested_lr}")
+# Output: Suggested LR: 0.00234
+
+model.train("cifar10", lr=suggested_lr)
+```
+
+### How It Works
+
+1. Start with a very small learning rate (1e-7)
+2. Train for a few iterations, increasing LR each step
+3. Plot loss vs learning rate
+4. Find the point of steepest descent
+
+### Custom LR Range
+
+```python
+suggested_lr = model.find_lr(
+    "cifar10",
+    start_lr=1e-8,
+    end_lr=10,
+    num_iter=100,
+)
+```
+
+## Automatic Tuning with Optuna
+
+For comprehensive hyperparameter search:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18")
+
+# Automatically tune hyperparameters
+best_params = model.tune(
+    data="cifar10",
+    trials=50,       # Number of trials
+    epochs=5,        # Epochs per trial
+    timeout=3600,    # Max time (seconds)
+)
+
+print(best_params)
+# {'lr': 0.00234, 'batch_size': 64, 'weight_decay': 0.001, ...}
+
+# Train with best params
+model.train("cifar10", epochs=100, **best_params)
+```
+
+<Note>
+Requires: `pip install optuna`
+</Note>
+
+## What Gets Tuned
+
+By default, the tuner searches these parameters:
+
+| Parameter | Search Space |
+|-----------|-------------|
+| `lr` | 1e-5 to 1e-1 (log scale) |
+| `batch_size` | [16, 32, 64, 128] |
+| `weight_decay` | 1e-5 to 1e-1 (log scale) |
+| `optimizer` | ["adam", "adamw", "sgd"] |
+| `scheduler` | ["cosine", "linear", "step"] |
+
+### Custom Search Space
+
+```python
+from optuna import Trial
+
+def custom_params(trial: Trial):
+    return {
+        "lr": trial.suggest_float("lr", 1e-5, 1e-2, log=True),
+        "batch_size": trial.suggest_categorical("batch_size", [32, 64, 128]),
+        "weight_decay": trial.suggest_float("weight_decay", 1e-6, 1e-2, log=True),
+        "dropout": trial.suggest_float("dropout", 0.0, 0.5),
+        "augmentation": trial.suggest_categorical("augmentation", ["light", "heavy", "randaugment"]),
+    }
+
+best_params = model.tune(
+    data="cifar10",
+    param_space=custom_params,
+    trials=100,
+)
+```
+
+## Grid Search
+
+For exhaustive search over a small parameter space:
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    method="grid",
+    param_grid={
+        "lr": [0.1, 0.01, 0.001],
+        "batch_size": [32, 64, 128],
+        "optimizer": ["adam", "sgd"],
+    }
+)
+```
+
+## Random Search
+
+Random sampling from a parameter space:
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    method="random",
+    trials=50,
+    param_distributions={
+        "lr": (1e-4, 1e-1, "log"),
+        "batch_size": [16, 32, 64, 128],
+    }
+)
+```
+
+## Tuning Strategies
+
+### Bayesian Optimization (Default)
+
+Uses past trials to guide the search:
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    method="bayesian",  # Default
+    trials=100,
+)
+```
+
+### Tree-structured Parzen Estimator (TPE)
+
+Often better for high-dimensional spaces:
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    method="tpe",
+    trials=100,
+)
+```
+
+### Early Pruning
+
+Stop unpromising trials early:
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    trials=100,
+    pruning=True,  # Stop bad trials early
+)
+```
+
+## Visualization
+
+### Plot Optimization History
+
+```python
+best_params, study = model.tune(
+    data="cifar10",
+    trials=50,
+    return_study=True,
+)
+
+# Plot optimization history
+import optuna.visualization as vis
+vis.plot_optimization_history(study)
+```
+
+### Parameter Importance
+
+```python
+# See which parameters matter most
+vis.plot_param_importances(study)
+```
+
+## Multi-Objective Tuning
+
+Optimize for both accuracy and speed:
+
+```python
+# Coming in Phase 2
+best_params = model.tune(
+    data="cifar10",
+    objectives=["accuracy", "latency"],
+)
+```
+
+## Resume Tuning
+
+Continue a previous tuning session:
+
+```python
+# Save study
+best_params, study = model.tune(
+    data="cifar10",
+    trials=50,
+    return_study=True,
+    study_name="cifar10_tuning",
+    storage="sqlite:///tuning.db",
+)
+
+# Later, resume
+best_params, study = model.tune(
+    data="cifar10",
+    trials=50,  # 50 more trials
+    return_study=True,
+    study_name="cifar10_tuning",
+    storage="sqlite:///tuning.db",
+)
+```
+
+## Distributed Tuning (Coming Soon)
+
+Optuna supports distributed tuning out of the box. In Phase 2, kitepy will deeply integrate this across multiple nodes:
+
+```python
+# On machine 1
+model.tune(
+    data="cifar10",
+    trials=50,
+    study_name="shared_study",
+    storage="postgresql://user:pass@server/db",
+)
+
+# On machine 2 (same time)
+model.tune(
+    data="cifar10",
+    trials=50,
+    study_name="shared_study",
+    storage="postgresql://user:pass@server/db",
+)
+```
+
+## Tips for Effective Tuning
+
+### 1. Start with LR Finder
+
+```python
+lr = model.find_lr("cifar10")
+# Use this as a starting point for LR search range
+```
+
+### 2. Use Few Epochs Per Trial
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    epochs=3,  # Quick evaluation
+    trials=100,  # Many trials
+)
+```
+
+### 3. Train Longer with Best Params
+
+```python
+best_params = model.tune(data="cifar10", epochs=5, trials=50)
+model.train("cifar10", epochs=100, **best_params)  # Full training
+```
+
+### 4. Use Pruning
+
+```python
+best_params = model.tune(
+    data="cifar10",
+    pruning=True,  # Stop bad trials after 1-2 epochs
+)
+```
+
+### 5. Consider Computational Budget
+
+```python
+# Time-based budget
+best_params = model.tune(
+    data="cifar10",
+    timeout=3600,  # 1 hour max
+)
+
+# Trial-based budget
+best_params = model.tune(
+    data="cifar10",
+    trials=100,  # 100 trials max
+)
+```
+
+## Complete Example
+
+```python
+from kitepy import CNN
+
+# Create model
+model = CNN("resnet18", num_classes=10)
+
+# Find learning rate
+suggested_lr = model.find_lr("cifar10")
+print(f"Suggested LR: {suggested_lr}")
+
+# Tune hyperparameters
+best_params = model.tune(
+    data="cifar10",
+    trials=50,
+    epochs=5,
+    pruning=True,
+)
+print(f"Best params: {best_params}")
+
+# Train with best params
+model.train(
+    "cifar10",
+    epochs=100,
+    **best_params,
+)
+
+# Evaluate
+metrics = model.evaluate("cifar10")
+print(f"Final accuracy: {metrics['accuracy']:.2f}%")
+```

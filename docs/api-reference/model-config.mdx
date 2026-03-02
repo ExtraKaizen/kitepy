@@ -1,0 +1,229 @@
+---
+title: 'ModelConfig'
+description: 'API reference for model configuration classes'
+icon: 'cubes'
+---
+
+## Overview
+
+kitepy provides specialized configuration classes for different model architectures.
+
+```python
+from kitepy import CNNConfig, TransformerConfig
+```
+
+---
+
+## CNNConfig
+
+Configuration for convolutional neural networks.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `arch` | `str` | `"resnet"` | Architecture family |
+| `depth` | `int` | `18` | Model depth |
+| `num_classes` | `int` | `1000` | Number of output classes |
+| `in_channels` | `int` | `3` | Input channels |
+| `pretrained` | `bool` | `False` | Use pretrained weights |
+| `dropout` | `float` | `0.0` | Dropout rate |
+| `drop_path` | `float` | `0.0` | Drop path rate |
+| `width_multiplier` | `float` | `1.0` | Width multiplier |
+
+### Example
+
+```python
+from kitepy import CNNConfig, CNN
+
+config = CNNConfig(
+    arch="resnet",
+    depth=50,
+    num_classes=100,
+    pretrained=True,
+    dropout=0.2,
+)
+
+model = CNN("resnet50", config=config)
+```
+
+---
+
+## TransformerConfig
+
+Configuration for Vision Transformers.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `arch` | `str` | `"vit"` | Architecture: "vit", "deit", "swin" |
+| `img_size` | `int` | `224` | Input image size |
+| `patch_size` | `int` | `16` | Patch size |
+| `in_channels` | `int` | `3` | Input channels |
+| `embed_dim` | `int` | `768` | Embedding dimension |
+| `depth` | `int` | `12` | Number of transformer blocks |
+| `num_heads` | `int` | `12` | Number of attention heads |
+| `mlp_ratio` | `float` | `4.0` | MLP hidden dim ratio |
+| `qkv_bias` | `bool` | `True` | Bias in QKV projection |
+| `num_classes` | `int` | `1000` | Number of output classes |
+| `pretrained` | `bool` | `False` | Use pretrained weights |
+| `drop_rate` | `float` | `0.0` | Dropout rate |
+| `attn_drop_rate` | `float` | `0.0` | Attention dropout rate |
+| `drop_path_rate` | `float` | `0.0` | Stochastic depth rate |
+
+### Example
+
+```python
+from kitepy import TransformerConfig, Transformer
+
+config = TransformerConfig(
+    arch="vit",
+    img_size=384,
+    patch_size=16,
+    embed_dim=768,
+    depth=12,
+    num_heads=12,
+    num_classes=100,
+    pretrained=True,
+    drop_path_rate=0.1,
+)
+
+model = Transformer("vit_base", config=config)
+```
+
+---
+
+## LLMConfig (Coming Soon)
+
+Configuration for language models.
+
+### Parameters (Preview)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `arch` | `str` | `"gpt"` | Architecture: "gpt", "llama", "mistral" |
+| `n_layers` | `int` | `12` | Number of transformer layers |
+| `d_model` | `int` | `768` | Model dimension |
+| `n_heads` | `int` | `12` | Number of attention heads |
+| `d_ff` | `int` | `3072` | Feed-forward dimension |
+| `vocab_size` | `int` | `50257` | Vocabulary size |
+| `context_length` | `int` | `1024` | Context length |
+| `norm_type` | `str` | `"layernorm"` | Normalization type |
+| `activation` | `str` | `"gelu"` | Activation function |
+| `pos_encoding` | `str` | `"learned"` | Positional encoding type |
+
+---
+
+## VLMConfig (Coming Soon)
+
+Configuration for vision-language models.
+
+### Parameters (Preview)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `arch` | `str` | `"clip"` | Architecture: "clip", "blip" |
+| `vision_model` | `str` | `"vit_base"` | Vision encoder |
+| `text_model` | `str` | `"gpt2"` | Text encoder |
+| `projection_dim` | `int` | `512` | Projection dimension |
+| `task` | `str` | `"contrastive"` | Task type |
+
+---
+
+## Common Methods
+
+All config classes inherit from `BaseConfig` and share these methods:
+
+### to_dict()
+
+Convert to dictionary:
+
+```python
+config = CNNConfig(num_classes=100)
+config_dict = config.to_dict()
+```
+
+### from_yaml() / to_yaml()
+
+Load/save from YAML:
+
+```python
+config = CNNConfig.from_yaml("model_config.yaml")
+config.to_yaml("model_config.yaml")
+```
+
+### from_json() / to_json()
+
+Load/save from JSON:
+
+```python
+config = CNNConfig.from_json("model_config.json")
+config.to_json("model_config.json")
+```
+
+### merge()
+
+Merge with another config:
+
+```python
+base_config = CNNConfig(num_classes=100)
+override = {"pretrained": True, "dropout": 0.2}
+merged = base_config.merge(override)
+```
+
+---
+
+## File-Based Configuration
+
+### YAML Example
+
+```yaml model.yaml
+arch: resnet
+depth: 50
+num_classes: 100
+pretrained: true
+dropout: 0.2
+```
+
+```python
+config = CNNConfig.from_yaml("model.yaml")
+model = CNN("resnet50", config=config)
+```
+
+### JSON Example
+
+```json model.json
+{
+  "arch": "resnet",
+  "depth": 50,
+  "num_classes": 100,
+  "pretrained": true
+}
+```
+
+```python
+config = CNNConfig.from_json("model.json")
+```
+
+---
+
+## Combining with TrainingConfig
+
+```python
+from kitepy import CNN, CNNConfig, TrainingConfig
+
+model_config = CNNConfig(
+    num_classes=100,
+    pretrained=True,
+)
+
+train_config = TrainingConfig(
+    epochs=50,
+    lr=0.001,
+    batch_size=128,
+)
+
+model = CNN("resnet50", config=model_config)
+model.train("cifar100", **train_config.to_dict())
+```

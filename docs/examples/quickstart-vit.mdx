@@ -1,0 +1,72 @@
+---
+title: 'Quickstart ViT'
+description: 'Vision Transformer training example'
+icon: 'brain'
+---
+
+## Overview
+
+This example shows how to train a Vision Transformer.
+
+## Full Code
+
+```python
+"""
+Quickstart example for Vision Transformer training.
+"""
+from kitepy import Transformer, print_device_info
+
+def main():
+    print_device_info()
+    
+    # Create ViT model
+    print("\n" + "="*70)
+    print("Training Vision Transformer")
+    print("="*70)
+    
+    # Best practice: always use pretrained weights
+    model = Transformer("vit_tiny", pretrained=True, num_classes=10)
+    
+    # ViT needs lower learning rate
+    model.train(
+        "cifar10",
+        epochs=10,
+        lr=0.0001,      # Lower LR for ViT
+        batch_size=64,
+        warmup_steps=500,
+    )
+    
+    # Evaluate
+    metrics = model.evaluate("cifar10")
+    print(f"\nTest Accuracy: {metrics['accuracy']:.2f}%")
+
+if __name__ == "__main__":
+    main()
+```
+
+## Key Differences from CNN
+
+1. **Always use pretrained weights** - ViT needs pretraining
+2. **Lower learning rate** - Typically 10x lower than CNNs
+3. **Use warmup** - Helps with training stability
+4. **Consider batch size** - ViT uses more memory
+
+## Available ViT Models
+
+```python
+Transformer("vit_tiny")   # 5.7M params
+Transformer("vit_small")  # 22M params
+Transformer("vit_base")   # 86M params
+Transformer("swin_tiny")  # 28M params
+```
+
+## Transfer Learning with ViT
+
+```python
+model = Transformer("vit_base", pretrained=True, num_classes=10)
+model.freeze_backbone()
+model.train("my_data", epochs=10, lr=0.01)
+
+model.unfreeze()
+model.train("my_data", epochs=50, lr=0.00001)
+```

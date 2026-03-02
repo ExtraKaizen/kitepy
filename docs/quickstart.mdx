@@ -1,0 +1,201 @@
+---
+title: 'Quickstart'
+description: 'Train your first model in under 5 minutes'
+icon: 'bolt'
+---
+
+## Prerequisites
+
+Before you begin, make sure you have:
+- Python 3.8 or higher
+- PyTorch 2.0 or higher
+- (Optional) CUDA-compatible GPU for faster training
+
+## Installation
+
+Install kitepy with pip:
+
+<CodeGroup>
+```bash pip
+pip install kitepy
+```
+
+```bash with GPU support
+pip install kitepy torch torchvision --extra-index-url https://download.pytorch.org/whl/cu118
+```
+
+```bash development install
+git clone https://github.com/ExtraKaizen/kitepy
+cd kitepy
+pip install -e .
+```
+</CodeGroup>
+
+## Your First Model
+
+Let's train a CNN on CIFAR-10. Create a file called `train.py`:
+
+```python train.py
+from kitepy import CNN
+
+# One line is all you need!
+CNN("resnet18").train("cifar10")
+```
+
+Run it:
+
+```bash
+python train.py
+```
+
+You'll see output like this:
+
+```
+✓ Created CNN model: resnet18
+  - Architecture: resnet
+  - Parameters: 11,689,512
+
+========================================
+🚀 Training Configuration
+========================================
+  Epochs:     10
+  Batch Size: 32
+  Device:     cuda:0
+  Mixed Precision: True
+
+Epoch 1/10: 100%|████████████| 1563/1563 [00:45<00:00, 34.12it/s]
+  → Train Loss: 1.4523  |  Val Loss: 1.1234  |  Val Acc: 62.45%
+
+Epoch 2/10: 100%|████████████| 1563/1563 [00:44<00:00, 35.01it/s]
+  → Train Loss: 1.0234  |  Val Loss: 0.9456  |  Val Acc: 68.32%
+
+...
+
+✓ Training complete! Best metric: 0.5123
+```
+
+<Check>Congratulations! You've trained your first model with kitepy!</Check>
+
+## Customizing Training
+
+Want more control? Override any parameter:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet50", num_classes=10, pretrained=True)
+
+model.train(
+    data="cifar10",
+    epochs=50,
+    batch_size=128,
+    lr=0.001,
+    optimizer="adamw",
+    scheduler="cosine",
+)
+```
+
+## Save and Load Models
+
+Save your trained model:
+
+```python
+# After training
+model.save("my_model.pt")
+
+# Load it later
+from kitepy import CNN
+loaded = CNN.load("my_model.pt")
+
+# Use for inference
+predictions = loaded.predict(images)
+```
+
+## Try Different Architectures
+
+kitepy supports 800+ model architectures:
+
+```python
+from kitepy import CNN, Transformer
+
+# Different CNN architectures
+CNN("resnet18").train("cifar10")
+CNN("resnet50").train("cifar10")
+CNN("efficientnet_b0").train("cifar10")
+CNN("mobilenet_v3_large").train("cifar10")
+
+# Vision Transformers
+Transformer("vit_tiny").train("cifar10")
+Transformer("swin_small").train("cifar10")
+```
+
+<Tip>
+Use `list_models("cnn")` to see all available CNN architectures, or `list_models("transformer")` for Vision Transformers.
+</Tip>
+
+## Use Your Own Data
+
+Point kitepy to your dataset folder:
+
+```python
+# ImageFolder structure:
+# my_dataset/
+#   train/
+#     class1/
+#       img1.jpg
+#       img2.jpg
+#     class2/
+#       ...
+#   val/
+#     class1/
+#       ...
+
+model = CNN("resnet18")
+model.train("/path/to/my_dataset")
+```
+
+Or use a PyTorch DataLoader directly:
+
+```python
+from torch.utils.data import DataLoader
+
+my_loader = DataLoader(my_dataset, batch_size=32, shuffle=True)
+model = CNN("resnet18")
+model.train(my_loader)
+```
+
+## Transfer Learning
+
+Use pretrained weights and fine-tune:
+
+```python
+from kitepy import CNN
+
+# Load pretrained model
+model = CNN("resnet50", pretrained=True, num_classes=10)
+
+# Freeze backbone, train only classifier
+model.freeze_backbone()
+model.train("my_dataset", epochs=10)
+
+# Unfreeze for fine-tuning
+model.unfreeze()
+model.train("my_dataset", epochs=20, lr=0.0001)
+```
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Vision Models" icon="eye" href="/vision/cnn">
+    Deep dive into CNNs and Vision Transformers
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/concepts/configuration">
+    Master the configuration system
+  </Card>
+  <Card title="Training Features" icon="graduation-cap" href="/training/basics">
+    Learn about advanced training options
+  </Card>
+  <Card title="Examples" icon="code" href="/examples/quickstart-cnn">
+    Browse complete example scripts
+  </Card>
+</CardGroup>

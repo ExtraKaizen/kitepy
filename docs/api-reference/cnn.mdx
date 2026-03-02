@@ -1,0 +1,394 @@
+---
+title: 'CNN'
+description: 'API reference for the CNN class'
+icon: 'image'
+---
+
+## Overview
+
+The `CNN` class provides a simple interface for training and using convolutional neural networks.
+
+```python
+from kitepy import CNN
+```
+
+## Constructor
+
+```python
+CNN(
+    model: Optional[Union[str, nn.Module]] = "resnet18",
+    config: Optional[Union[Dict, CNNConfig, str]] = None,
+    **kwargs
+)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `model` | `str` or `nn.Module` | `"resnet18"` | Model name (e.g., "resnet50") or custom PyTorch model |
+| `config` | `dict`, `CNNConfig`, or `str` | `None` | Configuration object, dict, or path to YAML/JSON file |
+| `**kwargs` | | | Override any config values |
+
+### Examples
+
+```python
+# Using preset
+model = CNN("resnet50")
+
+# With custom settings
+model = CNN("resnet50", num_classes=100, pretrained=True)
+
+# With config object
+from kitepy import CNNConfig
+config = CNNConfig(num_classes=100, pretrained=True)
+model = CNN("resnet50", config=config)
+
+# With custom PyTorch model
+import torch.nn as nn
+custom = nn.Sequential(...)
+model = CNN(custom)
+```
+
+---
+
+## Methods
+
+### train()
+
+Train the model on a dataset.
+
+```python
+model.train(
+    data: Union[str, DataLoader, Tuple[DataLoader, DataLoader]],
+    epochs: Optional[int] = None,
+    **kwargs
+) -> Dict[str, Any]
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `data` | `str`, `DataLoader`, or tuple | Dataset name, path, or DataLoader(s) |
+| `epochs` | `int` | Number of training epochs |
+| `batch_size` | `int` | Batch size (default: 32) |
+| `lr` | `float` | Learning rate (default: 0.001) |
+| `optimizer` | `str` | Optimizer name (default: "adamw") |
+| `scheduler` | `str` | Scheduler name (default: "cosine") |
+| `callbacks` | `list` | List of callbacks |
+| ... | | See [Training Basics](/training/basics) for all options |
+
+#### Returns
+
+Dictionary with training history and metrics.
+
+#### Examples
+
+```python
+# Basic
+model.train("cifar10")
+
+# With options
+model.train("cifar10", epochs=50, lr=0.001, batch_size=128)
+
+# With custom data
+model.train("/path/to/dataset")
+
+# With DataLoader
+model.train(train_loader, val_loader=val_loader)
+```
+
+---
+
+### evaluate()
+
+Evaluate the model on a dataset.
+
+```python
+model.evaluate(
+    data: Union[str, DataLoader],
+    **kwargs
+) -> Dict[str, float]
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `data` | `str` or `DataLoader` | Dataset name, path, or DataLoader |
+
+#### Returns
+
+Dictionary with evaluation metrics (loss, accuracy, etc.).
+
+#### Examples
+
+```python
+metrics = model.evaluate("cifar10")
+print(f"Accuracy: {metrics['accuracy']:.2f}%")
+```
+
+---
+
+### predict()
+
+Run inference on input data.
+
+```python
+model.predict(
+    input: Union[torch.Tensor, np.ndarray, PIL.Image],
+    **kwargs
+) -> torch.Tensor
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `input` | `Tensor`, `ndarray`, or `Image` | Input data |
+
+#### Returns
+
+Model predictions as a Tensor.
+
+#### Examples
+
+```python
+# Single image
+output = model.predict(image_tensor)
+predicted_class = output.argmax().item()
+
+# Batch
+outputs = model.predict(batch_tensor)
+predictions = outputs.argmax(dim=1)
+```
+
+---
+
+### save()
+
+Save the model to disk.
+
+```python
+model.save(
+    path: str,
+    save_config: bool = True
+)
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `str` | File path to save to |
+| `save_config` | `bool` | Whether to save configuration |
+
+#### Examples
+
+```python
+model.save("my_model.pt")
+```
+
+---
+
+### load() (classmethod)
+
+Load a saved model.
+
+```python
+CNN.load(
+    path: str,
+    device: Optional[str] = None
+) -> CNN
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `str` | Path to saved model |
+| `device` | `str` | Device to load to ("cuda", "cpu") |
+
+#### Returns
+
+Loaded `CNN` instance.
+
+#### Examples
+
+```python
+model = CNN.load("my_model.pt")
+model = CNN.load("my_model.pt", device="cpu")
+```
+
+---
+
+### freeze_backbone()
+
+Freeze the model backbone (all layers except classifier).
+
+```python
+model.freeze_backbone() -> None
+```
+
+#### Examples
+
+```python
+model = CNN("resnet50", pretrained=True)
+model.freeze_backbone()
+model.train("my_data", epochs=10)  # Only trains classifier
+```
+
+---
+
+### unfreeze()
+
+Unfreeze model parameters.
+
+```python
+model.unfreeze(layers: Optional[int] = None) -> None
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `layers` | `int` | Number of layers to unfreeze from the end. If None, unfreeze all. |
+
+#### Examples
+
+```python
+model.unfreeze()  # Unfreeze all
+model.unfreeze(layers=10)  # Unfreeze last 10 layers
+```
+
+---
+
+### describe()
+
+Print a description of the model.
+
+```python
+model.describe() -> None
+```
+
+---
+
+### profile()
+
+Profile the model performance.
+
+```python
+model.profile(
+    batch_size: int = 1,
+    warmup_runs: int = 10,
+    timed_runs: int = 100
+) -> Dict[str, Any]
+```
+
+#### Returns
+
+Dictionary with profiling results:
+- `total_params`: Total parameter count
+- `trainable_params`: Trainable parameter count
+- `model_size_mb`: Model size in MB
+- `latency_ms`: Inference latency in milliseconds
+- `throughput`: Samples per second
+
+---
+
+### export()
+
+Export the model for deployment.
+
+```python
+model.export(
+    path: str,
+    format: str = "torchscript",
+    **kwargs
+)
+```
+
+#### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `path` | `str` | Output file path |
+| `format` | `str` | Export format: "torchscript" or "onnx" |
+
+---
+
+### quantize()
+
+Quantize the model for faster inference.
+
+```python
+model.quantize(bits: int = 8) -> None
+```
+
+---
+
+### find_lr()
+
+Find optimal learning rate.
+
+```python
+model.find_lr(
+    data: Union[str, DataLoader],
+    start_lr: float = 1e-7,
+    end_lr: float = 10,
+    num_iter: int = 100
+) -> float
+```
+
+#### Returns
+
+Suggested learning rate.
+
+---
+
+### tune()
+
+Tune hyperparameters automatically.
+
+```python
+model.tune(
+    data: Union[str, DataLoader],
+    trials: int = 50,
+    epochs: int = 5,
+    **kwargs
+) -> Dict[str, Any]
+```
+
+#### Returns
+
+Dictionary with best hyperparameters.
+
+---
+
+## Class Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `modality` | `str` | `"vision"` |
+| `model` | `nn.Module` | The underlying PyTorch model |
+| `config` | `CNNConfig` | The configuration object |
+| `model_name` | `str` | Name of the model |
+| `trained` | `bool` | Whether model has been trained |
+
+---
+
+## Available Presets
+
+```python
+from kitepy import list_models
+
+print(list_models("cnn"))
+# ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152',
+#  'wide_resnet50', 'wide_resnet101', 'resnext50', 'resnext101',
+#  'efficientnet_b0', 'efficientnet_b1', ..., 'efficientnet_b7',
+#  'efficientnetv2_s', 'efficientnetv2_m', 'efficientnetv2_l',
+#  'mobilenet_v2', 'mobilenet_v3_small', 'mobilenet_v3_large',
+#  'vgg11', 'vgg13', 'vgg16', 'vgg19',
+#  'densenet121', 'densenet169', 'densenet201']
+```

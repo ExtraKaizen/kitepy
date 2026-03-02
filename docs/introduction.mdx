@@ -1,0 +1,122 @@
+---
+title: 'Introduction'
+description: 'Welcome to kitepy - Dead Simple Deep Learning'
+icon: 'rocket'
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="kitepy Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="kitepy Hero Dark"
+/>
+
+## What is kitepy?
+
+**kitepy** is a Python deep learning framework designed to make building and training neural networks as simple as possible. With kitepy, you can train state-of-the-art models with just **one line of code**.
+
+```python
+from kitepy import CNN
+CNN("resnet18").train("cifar10")
+```
+
+That's it. No boilerplate. No configuration hell. Just magic. ✨
+
+## Why kitepy?
+
+<CardGroup cols={2}>
+  <Card title="One-Line Training" icon="wand-magic-sparkles">
+    Train ResNet, EfficientNet, ViT, and 800+ more models with a single line of code.
+  </Card>
+  <Card title="Zero Configuration" icon="gear">
+    Smart defaults that just work. Start training immediately without configuration files.
+  </Card>
+  <Card title="Full Customization" icon="sliders">
+    Override any parameter when you need control. From learning rates to augmentation strategies.
+  </Card>
+  <Card title="Production Ready" icon="industry">
+    Built on PyTorch and timm (HuggingFace coming). Export to ONNX and TorchScript for deployment.
+  </Card>
+</CardGroup>
+
+## Core Philosophy
+
+kitepy follows a simple design philosophy:
+
+<Steps>
+  <Step title="Simple by Default">
+    The most common use case should require the least code. Training a ResNet on CIFAR-10 is one line.
+  </Step>
+  <Step title="Powerful When Needed">
+    When you need control, every parameter is accessible. Configuration objects, YAML files, or keyword arguments - your choice.
+  </Step>
+  <Step title="Wrap, Don't Reimplement">
+    We wrap battle-tested libraries (PyTorch, timm) instead of reimplementing from scratch. HuggingFace integration is next!
+  </Step>
+</Steps>
+
+## Quick Example
+
+Here's how easy it is to train different models:
+
+<CodeGroup>
+```python ResNet
+from kitepy import CNN
+
+# Train ResNet-18 on CIFAR-10
+model = CNN("resnet18")
+model.train("cifar10", epochs=10)
+```
+
+```python EfficientNet
+from kitepy import CNN
+
+# Train EfficientNet-B0 with custom settings
+model = CNN("efficientnet_b0", num_classes=100)
+model.train("cifar100", epochs=50, lr=0.001)
+```
+
+```python Vision Transformer
+from kitepy import Transformer
+
+# Train Vision Transformer
+model = Transformer("vit_base", pretrained=True)
+model.freeze_backbone()  # Transfer learning
+model.train("imagenet", epochs=10)
+```
+</CodeGroup>
+
+## Supported Models
+
+kitepy supports an extensive range of models across multiple domains:
+
+| Category | Models | Examples |
+|----------|--------|----------|
+| **CNNs** | ResNet, EfficientNet, MobileNet, VGG, DenseNet | `resnet50`, `efficientnet_b3`, `mobilenet_v3_large` |
+| **Vision Transformers** | ViT, DeiT, Swin | `vit_base`, `swin_tiny`, `deit_small` |
+| **+ 800 more** | All timm models | Any model from timm library |
+
+<Info>
+**Coming Soon**: LLMs (GPT, LLaMA), VLMs (CLIP, BLIP), Audio (Whisper), and Diffusion models.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="play" href="/quickstart">
+    Get up and running in 5 minutes
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install kitepy on your system
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/concepts/philosophy">
+    Learn the design principles
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/cnn">
+    Explore the complete API
+  </Card>
+</CardGroup>

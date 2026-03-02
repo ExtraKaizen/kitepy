@@ -1,0 +1,249 @@
+---
+title: 'Datasets'
+description: 'Load and use datasets with kitepy'
+icon: 'database'
+---
+
+## Overview
+
+kitepy supports multiple ways to load data for training:
+
+1. **Built-in datasets** - CIFAR, MNIST, ImageNet
+2. **Custom folders** - ImageFolder structure
+3. **PyTorch DataLoaders** - Full flexibility
+
+## Built-in Datasets
+
+### CIFAR-10
+
+```python
+from kitepy import CNN
+
+# Auto-downloads to ./data
+model = CNN("resnet18")
+model.train("cifar10")
+```
+
+- **Classes**: 10 (airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck)
+- **Image size**: 32x32
+- **Train samples**: 50,000
+- **Test samples**: 10,000
+
+### CIFAR-100
+
+```python
+model.train("cifar100")
+```
+
+- **Classes**: 100 (fine-grained categories)
+- **Image size**: 32x32
+- **Train samples**: 50,000
+- **Test samples**: 10,000
+
+### MNIST
+
+```python
+model.train("mnist")
+```
+
+- **Classes**: 10 (digits 0-9)
+- **Image size**: 28x28 (grayscale)
+- **Train samples**: 60,000
+- **Test samples**: 10,000
+
+### Fashion-MNIST
+
+```python
+model.train("fashion_mnist")
+```
+
+- **Classes**: 10 (T-shirt, Trouser, Pullover, Dress, Coat, Sandal, Shirt, Sneaker, Bag, Ankle boot)
+- **Image size**: 28x28 (grayscale)
+- **Train samples**: 60,000
+- **Test samples**: 10,000
+
+### ImageNet
+
+```python
+# Requires manual download
+model.train("imagenet")
+```
+
+- **Classes**: 1,000
+- **Image size**: Variable (resized to 224x224)
+- **Train samples**: ~1.2 million
+- **Validation samples**: 50,000
+
+<Warning>
+ImageNet requires manual download due to licensing. Place the data in `./data/imagenet/` with `train/` and `val/` subdirectories.
+</Warning>
+
+## Custom Datasets
+
+### ImageFolder Structure
+
+kitepy supports the standard PyTorch ImageFolder structure:
+
+```
+my_dataset/
+├── train/
+│   ├── class1/
+│   │   ├── img001.jpg
+│   │   ├── img002.jpg
+│   │   └── ...
+│   ├── class2/
+│   │   └── ...
+│   └── classN/
+│       └── ...
+└── val/
+    ├── class1/
+    │   └── ...
+    ├── class2/
+    │   └── ...
+    └── classN/
+        └── ...
+```
+
+Train on it:
+
+```python
+model = CNN("resnet18")
+model.train("/path/to/my_dataset")
+```
+
+### Auto-Splitting
+
+If you have only a single folder without train/val split:
+
+```python
+# kitepy will auto-split 80/20
+model.train("/path/to/unsplit_dataset")
+```
+
+The data is split with:
+- 80% training
+- 20% validation
+- Random seed for reproducibility
+
+## PyTorch DataLoaders
+
+For full control, pass your own DataLoaders:
+
+```python
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+
+# Create custom transforms
+transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.RandomCrop(224),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+# Create dataset
+train_dataset = datasets.ImageFolder('/path/to/train', transform=transform)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
+
+# Train with custom loader
+model = CNN("resnet18")
+model.train(train_loader, epochs=10)
+```
+
+## Synthetic Dataset
+
+For testing and debugging without downloading data:
+
+```python
+# Uses random data
+model.train("synthetic", epochs=1, fast_dev_run=True)
+```
+
+This creates:
+- Random 224x224 images
+- Random class labels
+- Small dataset (128 training, 64 validation)
+
+## Data Configuration
+
+### Batch Size
+
+```python
+model.train("cifar10", batch_size=128)
+```
+
+### Shuffle
+
+```python
+from kitepy import DataConfig
+
+config = DataConfig(shuffle=True)  # Default
+```
+
+### Number of Workers
+
+```python
+model.train("cifar10", num_workers=8)
+```
+
+<Tip>
+Set `num_workers` to 0 on Windows if you encounter multiprocessing errors.
+</Tip>
+
+### Pin Memory
+
+```python
+model.train("cifar10", pin_memory=True)  # Default on GPU
+```
+
+## List Available Datasets
+
+```python
+from kitepy import list_datasets
+
+datasets = list_datasets()
+print(datasets)
+# ['cifar10', 'cifar100', 'mnist', 'fashion_mnist', 'imagenet', ...]
+```
+
+## Data Transforms
+
+kitepy applies appropriate transforms automatically. See the [Augmentation](/vision/augmentation) page for customization.
+
+## Working with HuggingFace Datasets
+
+Coming soon! kitepy will support loading datasets from HuggingFace Hub:
+
+```python
+# Coming in Phase 2
+model.train("food101")  # Auto-loads from HuggingFace
+```
+
+## Memory-Efficient Data Loading
+
+For large datasets that don't fit in memory:
+
+```python
+model.train("imagenet",
+    # Prefetch fewer batches
+    prefetch_factor=2,
+    
+    # Don't keep data in memory
+    persistent_workers=False,
+)
+```
+
+## Dataset Statistics
+
+Get information about a dataset:
+
+```python
+from kitepy.core.presets import DATASET_PRESETS
+
+print(DATASET_PRESETS["cifar10"])
+# {'name': 'cifar10', 'num_classes': 10, 'img_size': 32, 'source': 'torchvision'}
+
+print(DATASET_PRESETS["imagenet"])
+# {'name': 'imagenet-1k', 'num_classes': 1000, 'img_size': 224, 'source': 'torchvision'}
+```

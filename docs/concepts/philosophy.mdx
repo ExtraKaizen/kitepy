@@ -1,0 +1,228 @@
+---
+title: 'Philosophy'
+description: 'The design principles behind kitepy'
+icon: 'lightbulb'
+---
+
+## The Vision
+
+kitepy was created with a simple goal: **make deep learning accessible to everyone** while remaining powerful enough for experts.
+
+We believe that training a neural network shouldn't require hundreds of lines of boilerplate code. The common case should be trivially simple, while advanced use cases remain fully accessible.
+
+## Core Principles
+
+### 1. Simple by Default
+
+The most common use case should require the least amount of code.
+
+<CodeGroup>
+```python The kitepy Way
+from kitepy import CNN
+CNN("resnet18").train("cifar10")
+```
+
+```python Traditional Way
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms, models
+
+# Define transforms
+transform = transforms.Compose([
+    transforms.Resize(224),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+# Load data
+train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+val_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+# Create model
+model = models.resnet18(pretrained=False, num_classes=10)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = model.to(device)
+
+# Setup training
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+criterion = nn.CrossEntropyLoss()
+
+# Training loop
+for epoch in range(10):
+    model.train()
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        loss = criterion(output, target)
+        loss.backward()
+        optimizer.step()
+    
+    # Validation
+    model.eval()
+    val_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for data, target in val_loader:
+            data, target = data.to(device), target.to(device)
+            output = model(data)
+            val_loss += criterion(output, target).item()
+            pred = output.argmax(dim=1)
+            correct += pred.eq(target).sum().item()
+    
+    print(f"Epoch {epoch}: Val Acc = {100. * correct / len(val_dataset):.2f}%")
+```
+</CodeGroup>
+
+### 2. Powerful When Needed
+
+When you need control, every parameter is accessible. You can override any configuration value:
+
+```python
+from kitepy import CNN, TrainingConfig, CNNConfig
+
+# Use configuration objects for complex setups
+model_config = CNNConfig(
+    arch="resnet",
+    depth=50,
+    num_classes=100,
+    pretrained=True,
+    drop_rate=0.3,
+)
+
+train_config = TrainingConfig(
+    epochs=100,
+    batch_size=256,
+    lr=0.01,
+    optimizer="adamw",
+    scheduler="cosine",
+    weight_decay=0.05,
+    early_stopping=True,
+    early_stopping_patience=5,
+)
+
+model = CNN("resnet50", config=model_config)
+model.train("cifar100", **train_config.to_dict())
+```
+
+Or use YAML configuration files:
+
+```yaml config.yaml
+model:
+  arch: resnet
+  depth: 50
+  num_classes: 100
+  pretrained: true
+
+training:
+  epochs: 100
+  batch_size: 256
+  lr: 0.01
+  optimizer: adamw
+```
+
+```python
+model = CNN(config="config.yaml")
+model.train("cifar100")
+```
+
+### 3. Wrap, Don't Reimplement
+
+kitepy doesn't reinvent the wheel. We wrap proven, battle-tested libraries:
+
+| Domain | Backend Library | Why |
+|--------|----------------|-----|
+| Vision Models | timm | 800+ architectures, optimized, pretrained weights |
+| Training | PyTorch | Industry standard, flexible, well-documented |
+| Language Models | HuggingFace | State-of-the-art models, tokenizers, datasets |
+| Augmentation | torchvision | Fast, GPU-accelerated, well-tested |
+
+This means:
+- ✅ You get access to the latest architectures immediately
+- ✅ Pretrained weights are available out of the box
+- ✅ Bug fixes from upstream libraries benefit you
+- ✅ Documentation and community support already exist
+
+### 4. Progressive Disclosure
+
+kitepy reveals complexity gradually. You start simple and add complexity only when needed:
+
+<Steps>
+  <Step title="Level 1: Just Train">
+    ```python
+    CNN("resnet18").train("cifar10")
+    ```
+  </Step>
+  <Step title="Level 2: Customize">
+    ```python
+    CNN("resnet18").train("cifar10", epochs=50, lr=0.001)
+    ```
+  </Step>
+  <Step title="Level 3: Full Control">
+    ```python
+    model = CNN("resnet18", config=CNNConfig(...))
+    model.train(data_loader, **TrainingConfig(...).to_dict())
+    ```
+  </Step>
+  <Step title="Level 4: Escape Hatch">
+    ```python
+    pytorch_model = model.unwrap()  # Get raw PyTorch model
+    # Now use standard PyTorch training
+    ```
+  </Step>
+</Steps>
+
+## Target Users
+
+kitepy is designed for:
+
+<CardGroup cols={2}>
+  <Card title="Beginners" icon="seedling">
+    Students and learners who want to train models without boilerplate
+  </Card>
+  <Card title="Researchers" icon="flask">
+    Researchers who need to iterate quickly on experiments
+  </Card>
+  <Card title="Practitioners" icon="industry">
+    ML engineers who want reproducible, production-ready training
+  </Card>
+  <Card title="Educators" icon="chalkboard-teacher">
+    Teachers who want to focus on concepts, not PyTorch internals
+  </Card>
+</CardGroup>
+
+## Non-Goals
+
+kitepy intentionally does **not** aim to:
+
+- ❌ Replace PyTorch for custom research
+- ❌ Provide every possible configuration option
+- ❌ Be the fastest training framework
+- ❌ Support every edge case
+
+For these use cases, we recommend using PyTorch directly or specialized frameworks like PyTorch Lightning, Hugging Face Accelerate, or DeepSpeed.
+
+## The Escape Hatch
+
+When kitepy doesn't fit your needs, you can always get the underlying PyTorch model:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet50", pretrained=True)
+model._build_model()
+
+# Get the raw PyTorch model
+pytorch_model = model.unwrap()
+
+# Now use standard PyTorch training
+for epoch in range(10):
+    for batch in train_loader:
+        # Your custom training logic
+        pass
+```
+
+This ensures you're never locked in - kitepy is a **productivity boost**, not a cage.

@@ -1,0 +1,66 @@
+---
+title: 'Transfer Learning'
+description: 'Fine-tuning pretrained models'
+icon: 'share'
+---
+
+## Overview
+
+Fine-tune a pretrained model on your custom dataset.
+
+## Full Code
+
+```python
+"""
+Transfer learning example with kitepy.
+"""
+from kitepy import CNN
+
+def main():
+    # Load pretrained ResNet-50
+    model = CNN("resnet50", pretrained=True, num_classes=10)
+    
+    # Phase 1: Freeze backbone, train only classifier
+    print("Phase 1: Training classifier only...")
+    model.freeze_backbone()
+    model.train(
+        "my_dataset",
+        epochs=10,
+        lr=0.01,  # Higher LR for untrained layer
+        batch_size=32,
+    )
+    
+    # Phase 2: Unfreeze and fine-tune entire model
+    print("\nPhase 2: Fine-tuning entire model...")
+    model.unfreeze()
+    model.train(
+        "my_dataset",
+        epochs=50,
+        lr=0.0001,  # Lower LR for pretrained weights
+        batch_size=32,
+    )
+    
+    # Evaluate
+    metrics = model.evaluate("my_dataset")
+    print(f"\nFinal Accuracy: {metrics['accuracy']:.2f}%")
+    
+    # Save
+    model.save("fine_tuned_model.pt")
+
+if __name__ == "__main__":
+    main()
+```
+
+## Key Steps
+
+1. **Load pretrained** - `pretrained=True`
+2. **Freeze backbone** - `model.freeze_backbone()`
+3. **Train classifier** - High LR, few epochs
+4. **Unfreeze** - `model.unfreeze()`
+5. **Fine-tune** - Low LR, more epochs
+
+## Tips
+
+- Use lower LR after unfreezing (10x-100x lower)
+- Add regularization for small datasets
+- Use data augmentation

@@ -1,0 +1,259 @@
+---
+title: 'Distributed Training'
+description: 'Train on multiple GPUs and nodes'
+icon: 'server'
+---
+
+## Overview
+
+kitepy automatically detects the best available device (CPU or GPU) and uses it efficiently out of the box. 
+
+<Note>
+Full distributed training support across multiple GPUs and nodes (DDP, FSDP, DeepSpeed) is currently in development and will be released in an upcoming phase.
+</Note>
+
+## Automatic Device Selection
+
+kitepy automatically selects the best available device:
+
+```python
+from kitepy import CNN
+
+# Automatically uses GPU if available
+model = CNN("resnet18")
+model.train("cifar10")
+```
+
+Check what device is being used:
+
+```python
+from kitepy import print_device_info
+
+print_device_info()
+# Output:
+# ========================================
+# 🖥️  Device Information
+# ========================================
+#   Available:  cuda:0 (NVIDIA RTX 4090)
+#   Memory:     24.0 GB
+```
+
+## Specifying Devices
+
+### Single GPU
+
+```python
+# Use specific GPU
+model.train("cifar10", devices=0)  # GPU 0
+
+model.train("cifar10", devices=1)  # GPU 1
+```
+
+### Multiple GPUs
+
+```python
+# Coming in Phase 2
+model.train("cifar10", devices=4)  # Use 4 GPUs
+```
+
+### CPU Only
+
+```python
+model.train("cifar10", devices="cpu")
+```
+
+## Current Capabilities
+
+### Mixed Precision Training
+
+Uses NVIDIA Tensor Cores for faster training:
+
+```python
+model.train("cifar10", mixed_precision=True)  # Default on GPU
+```
+
+### Automatic Memory Optimization
+
+kitepy automatically handles:
+
+- Moving model to GPU
+- Moving data to GPU
+- Mixed precision scaling
+- Gradient scaling
+
+### Memory-Efficient Training
+
+For large models, use these techniques:
+
+```python
+model.train("imagenet",
+    # Reduce batch size
+    batch_size=32,
+    
+    # Accumulate gradients
+    gradient_accumulation_steps=8,
+    
+    # Enable gradient checkpointing
+    gradient_checkpointing=True,
+    
+    # Use mixed precision
+    mixed_precision=True,
+)
+```
+
+## Coming in Phase 2
+
+### DataParallel (DP)
+
+Simple multi-GPU on single machine:
+
+```python
+# Coming soon
+model.train("imagenet",
+    strategy="dp",
+    devices=4,
+)
+```
+
+### DistributedDataParallel (DDP)
+
+Efficient multi-GPU with process-per-GPU:
+
+```python
+# Coming soon
+model.train("imagenet",
+    strategy="ddp",
+    devices=4,
+)
+```
+
+### Fully Sharded Data Parallel (FSDP)
+
+Train models larger than GPU memory:
+
+```python
+# Coming soon
+model.train("imagenet",
+    strategy="fsdp",
+    devices=8,
+)
+```
+
+### DeepSpeed
+
+ZeRO optimization for huge models:
+
+```python
+# Coming soon
+model.train("imagenet",
+    strategy="deepspeed",
+    devices=8,
+    deepspeed_config="ds_config.json",
+)
+```
+
+### Multi-Node Training
+
+Train across multiple machines:
+
+```python
+# Coming soon
+model.train("imagenet",
+    num_nodes=4,
+    devices=8,  # GPUs per node
+)
+```
+
+## Performance Tips
+
+### Use Mixed Precision
+
+Always enable when training on modern GPUs:
+
+```python
+model.train("cifar10", mixed_precision=True)
+```
+
+### Optimize Data Loading
+
+```python
+model.train("imagenet",
+    num_workers=8,      # Match CPU cores
+    pin_memory=True,    # Faster CPU→GPU transfer
+    prefetch_factor=2,  # Prefetch batches
+)
+```
+
+### Batch Size Tuning
+
+Find the optimal batch size for your GPU:
+
+```python
+# Start large, reduce if OOM
+for batch_size in [256, 128, 64, 32]:
+    try:
+        model.train("cifar10", batch_size=batch_size, fast_dev_run=True)
+        print(f"Batch size {batch_size} works!")
+        break
+    except RuntimeError as e:
+        if "out of memory" in str(e):
+            print(f"Batch size {batch_size} OOM, trying smaller...")
+        else:
+            raise
+```
+
+### Monitor GPU Usage
+
+```bash
+# In another terminal
+watch -n 1 nvidia-smi
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="CUDA out of memory">
+    Try these in order:
+    1. Reduce batch size
+    2. Enable gradient checkpointing
+    3. Use gradient accumulation
+    4. Use mixed precision
+    
+    ```python
+    model.train("imagenet",
+        batch_size=16,
+        gradient_accumulation_steps=16,
+        gradient_checkpointing=True,
+        mixed_precision=True,
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="Training is slow">
+    Check:
+    1. Are you using GPU? Check `print_device_info()`
+    2. Is mixed precision enabled?
+    3. Are there enough data workers?
+    4. Is the GPU being fully utilized?
+    
+    ```python
+    model.train("imagenet",
+        mixed_precision=True,
+        num_workers=8,
+        pin_memory=True,
+    )
+    ```
+  </Accordion>
+
+  <Accordion title="Data loading bottleneck">
+    Increase data workers:
+    ```python
+    model.train("imagenet", num_workers=16)
+    ```
+    
+    If on Windows, you might need:
+    ```python
+    model.train("imagenet", num_workers=0)
+    ```
+  </Accordion>
+</AccordionGroup>

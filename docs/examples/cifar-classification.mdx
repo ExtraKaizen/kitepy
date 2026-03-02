@@ -1,0 +1,67 @@
+---
+title: 'CIFAR Classification'
+description: 'Complete CIFAR-10/100 classification tutorial'
+icon: 'graduation-cap'
+---
+
+## Overview
+
+A complete tutorial for achieving high accuracy on CIFAR datasets.
+
+## CIFAR-10 Baseline
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18")
+model.train("cifar10", epochs=100)
+
+# Expected: ~93% accuracy
+```
+
+## High Accuracy Recipe
+
+```python
+from kitepy import CNN
+
+model = CNN("efficientnet_b0", num_classes=10, pretrained=True)
+
+model.train(
+    "cifar10",
+    epochs=200,
+    batch_size=128,
+    lr=0.001,
+    optimizer="adamw",
+    scheduler="cosine",
+    weight_decay=0.05,
+    augmentation="randaugment",
+    mixup_alpha=0.2,
+    cutmix_alpha=1.0,
+    label_smoothing=0.1,
+)
+
+# Expected: ~96-97% accuracy
+```
+
+## CIFAR-100
+
+```python
+model = CNN("resnet50", num_classes=100, pretrained=True)
+
+model.train(
+    "cifar100",
+    epochs=200,
+    batch_size=128,
+    lr=0.001,
+    augmentation="randaugment",
+)
+
+# Expected: ~80-85% accuracy
+```
+
+## Tips for CIFAR
+
+1. **Use pretrained weights** - Even ImageNet helps
+2. **Strong augmentation** - RandAugment or TrivialAugment
+3. **Mixup/CutMix** - Extra regularization
+4. **Longer training** - 200+ epochs for best results

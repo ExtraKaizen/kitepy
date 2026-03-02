@@ -1,0 +1,122 @@
+---
+title: 'Vision'
+description: 'API reference for the Vision class'
+icon: 'eye'
+---
+
+## Overview
+
+The `Vision` class provides a general vision model API with explicit task specification. This is for advanced users who want more control over the model type.
+
+```python
+from kitepy import Vision
+```
+
+<Note>
+For most use cases, use `CNN` or `Transformer` directly instead of `Vision`.
+</Note>
+
+## Constructor
+
+```python
+Vision(
+    task: str = "classification",
+    model: Optional[Union[str, nn.Module]] = "resnet18",
+    config: Optional[Union[Dict, CNNConfig, str]] = None,
+    **kwargs
+)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `task` | `str` | `"classification"` | Task type: "classification", "detection", "segmentation" |
+| `model` | `str` or `nn.Module` | `"resnet18"` | Model name or custom PyTorch model |
+| `config` | Config | `None` | Configuration object, dict, or path |
+| `**kwargs` | | | Override any config values |
+
+### Examples
+
+```python
+# Image classification
+model = Vision(task="classification", model="resnet50")
+model.train("cifar10")
+
+# Object detection (coming soon)
+model = Vision(task="detection", model="yolo")
+
+# Semantic segmentation (coming soon)
+model = Vision(task="segmentation", model="unet")
+```
+
+---
+
+## Supported Tasks
+
+### Classification (Available)
+
+```python
+model = Vision(task="classification", model="resnet50")
+model.train("cifar10")
+```
+
+Equivalent to using `CNN` directly.
+
+### Detection (Coming Soon)
+
+```python
+# Coming in Phase 2
+model = Vision(task="detection", model="yolov8")
+model.train("coco")
+```
+
+### Segmentation (Coming Soon)
+
+```python
+# Coming in Phase 2
+model = Vision(task="segmentation", model="unet")
+model.train("cityscapes")
+```
+
+---
+
+## Methods
+
+The `Vision` class inherits all methods from `BaseModel`:
+
+- `train()` - Train the model
+- `evaluate()` - Evaluate on a dataset
+- `predict()` - Run inference
+- `save()` / `load()` - Save and load models
+- `freeze_backbone()` / `unfreeze()` - Transfer learning
+- `describe()` - Print model description
+- `profile()` - Profile performance
+- `export()` - Export for deployment
+
+See the [CNN API Reference](/api-reference/cnn) for detailed documentation.
+
+---
+
+## Class Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `modality` | `str` | `"vision"` |
+| `task` | `str` | The specified task |
+| `model` | `nn.Module` | The underlying PyTorch model |
+| `config` | `CNNConfig` | The configuration object |
+
+---
+
+## When to Use Vision
+
+Use `Vision` when:
+- You want to explicitly specify the task
+- You're preparing for future detection/segmentation support
+- You want a more general API
+
+Use `CNN` or `Transformer` when:
+- You know you want a specific architecture type
+- Simplicity is a priority
+- You don't need task switching

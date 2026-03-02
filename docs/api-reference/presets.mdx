@@ -1,0 +1,112 @@
+---
+title: 'Presets'
+description: 'API reference for model and dataset presets'
+icon: 'list'
+---
+
+## Overview
+
+kitepy provides preset configurations for models and datasets.
+
+```python
+from kitepy import list_models, list_datasets, get_preset
+```
+
+## list_models()
+
+List available model presets.
+
+```python
+list_models(modality: str = "all") -> Union[List[str], Dict[str, List[str]]]
+```
+
+### Examples
+
+```python
+# All model types
+all_models = list_models("all")
+
+# CNN models only
+cnn_models = list_models("cnn")
+# ['resnet18', 'resnet34', 'resnet50', ...]
+
+# Transformer models
+transformer_models = list_models("transformer")
+# ['vit_tiny', 'vit_small', 'vit_base', ...]
+```
+
+## list_datasets()
+
+List available dataset presets.
+
+```python
+list_datasets(modality: str = "all") -> List[str]
+```
+
+### Examples
+
+```python
+datasets = list_datasets()
+# ['cifar10', 'cifar100', 'mnist', 'imagenet', ...]
+```
+
+## get_preset()
+
+Get a preset configuration.
+
+```python
+get_preset(name: str, modality: Optional[str] = None) -> Dict[str, Any]
+```
+
+### Examples
+
+```python
+preset = get_preset("resnet50")
+# {'arch': 'resnet', 'depth': 50, 'num_classes': 1000}
+```
+
+## register_preset()
+
+Register a custom preset.
+
+```python
+from kitepy import register_preset
+
+register_preset(
+    "my_resnet",
+    {"arch": "resnet", "depth": 50, "width_multiplier": 2.0},
+    modality="cnn"
+)
+
+# Now use it
+model = CNN("my_resnet")
+```
+
+## Available Presets
+
+### CNNs
+
+| Preset | Description |
+|--------|-------------|
+| `resnet18/34/50/101/152` | ResNet family |
+| `efficientnet_b0-b7` | EfficientNet |
+| `mobilenet_v2/v3` | MobileNet |
+| `vgg11/13/16/19` | VGG |
+| `densenet121/169/201` | DenseNet |
+
+### Transformers
+
+| Preset | Description |
+|--------|-------------|
+| `vit_tiny/small/base/large/huge` | Vision Transformer |
+| `deit_tiny/small/base` | DeiT |
+| `swin_tiny/small/base/large` | Swin Transformer |
+
+### Datasets
+
+| Preset | Classes | Size |
+|--------|---------|------|
+| `cifar10` | 10 | 32x32 |
+| `cifar100` | 100 | 32x32 |
+| `mnist` | 10 | 28x28 |
+| `imagenet` | 1000 | 224x224 |

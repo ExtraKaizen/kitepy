@@ -1,0 +1,70 @@
+---
+title: 'Fine-tuning Pretrained'
+description: 'Fine-tuning pretrained models on custom data'
+icon: 'screwdriver-wrench'
+---
+
+## Overview
+
+Fine-tune any pretrained model on your own dataset.
+
+## Dataset Structure
+
+```
+my_dataset/
+├── train/
+│   ├── class1/
+│   │   ├── img1.jpg
+│   │   └── img2.jpg
+│   └── class2/
+│       └── ...
+└── val/
+    ├── class1/
+    └── class2/
+```
+
+## Basic Fine-Tuning
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet50", pretrained=True, num_classes=5)
+model.train("/path/to/my_dataset", epochs=50, lr=0.001)
+```
+
+## Two-Stage Fine-Tuning
+
+```python
+model = CNN("efficientnet_b2", pretrained=True, num_classes=5)
+
+# Stage 1: Classifier only
+model.freeze_backbone()
+model.train("/path/to/data", epochs=10, lr=0.01)
+
+# Stage 2: Full model
+model.unfreeze()
+model.train("/path/to/data", epochs=50, lr=0.0001)
+```
+
+## Best Practices
+
+1. **Start with smaller models** for small datasets
+2. **Use strong augmentation** to prevent overfitting
+3. **Lower learning rate** after unfreezing
+4. **Add dropout** for regularization
+
+```python
+model = CNN("efficientnet_b0", 
+    pretrained=True, 
+    num_classes=5,
+    dropout=0.3,
+)
+
+model.train(
+    "/path/to/data",
+    epochs=100,
+    lr=0.0001,
+    weight_decay=0.01,
+    augmentation="randaugment",
+)
+```

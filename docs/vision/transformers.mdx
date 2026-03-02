@@ -1,0 +1,272 @@
+---
+title: 'Vision Transformers'
+description: 'Train Vision Transformers (ViT, Swin, DeiT) with kitepy'
+icon: 'brain'
+---
+
+## Overview
+
+The `Transformer` class provides access to Vision Transformer architectures. These transformer-based models have achieved state-of-the-art results on image classification and many other vision tasks.
+
+## Basic Usage
+
+```python
+from kitepy import Transformer
+
+# Train ViT-Base on CIFAR-10
+model = Transformer("vit_base")
+model.train("cifar10")
+```
+
+## Supported Architectures
+
+### Vision Transformer (ViT)
+
+The original Vision Transformer introduced in "An Image is Worth 16x16 Words":
+
+```python
+Transformer("vit_tiny").train("cifar10")   # 5.7M params
+Transformer("vit_small").train("cifar10")  # 22M params
+Transformer("vit_base").train("cifar10")   # 86M params
+Transformer("vit_large").train("cifar10")  # 304M params
+Transformer("vit_huge").train("cifar10")   # 632M params
+```
+
+### DeiT (Data-efficient Image Transformer)
+
+Improved training recipe for ViT:
+
+```python
+Transformer("deit_tiny").train("imagenet")
+Transformer("deit_small").train("imagenet")
+Transformer("deit_base").train("imagenet")
+```
+
+### Swin Transformer
+
+Hierarchical Vision Transformer with shifted windows:
+
+```python
+Transformer("swin_tiny").train("imagenet")   # 28M params
+Transformer("swin_small").train("imagenet")  # 50M params
+Transformer("swin_base").train("imagenet")   # 88M params
+Transformer("swin_large").train("imagenet")  # 197M params
+```
+
+<Info>
+Swin Transformer is often preferred for tasks that require multi-scale features, such as object detection and segmentation.
+</Info>
+
+## When to Use Vision Transformers
+
+<CardGroup cols={2}>
+  <Card title="Use ViT When" icon="check">
+    - You have large datasets (ImageNet-scale or bigger)
+    - Pretrained weights are available
+    - You need best accuracy
+    - Computational resources are abundant
+  </Card>
+  <Card title="Use CNN When" icon="times">
+    - Dataset is small
+    - No pretrained weights for your domain
+    - Inference speed is critical
+    - Training on limited hardware
+  </Card>
+</CardGroup>
+
+## Pretrained Weights
+
+Vision Transformers greatly benefit from pretraining:
+
+```python
+# Always use pretrained weights when available
+model = Transformer("vit_base", pretrained=True)
+model.train("my_dataset")
+```
+
+<Warning>
+Training Vision Transformers from scratch on small datasets typically yields poor results. Always use pretrained weights when possible.
+</Warning>
+
+## Transfer Learning
+
+### Standard Fine-Tuning
+
+```python
+from kitepy import Transformer
+
+# Load pretrained ViT
+model = Transformer("vit_base", pretrained=True, num_classes=10)
+
+# Fine-tune on custom data
+model.train("my_dataset", epochs=50, lr=0.0001)
+```
+
+### Freeze and Fine-Tune
+
+```python
+# Freeze transformer backbone
+model = Transformer("vit_base", pretrained=True, num_classes=10)
+model.freeze_backbone()
+
+# Train only the classification head
+model.train("my_dataset", epochs=10, lr=0.01)
+
+# Then unfreeze for full fine-tuning
+model.unfreeze()
+model.train("my_dataset", epochs=50, lr=0.00001)
+```
+
+## Configuration Options
+
+### Image Size
+
+```python
+# Standard 224x224
+model = Transformer("vit_base", img_size=224)
+
+# Higher resolution for more detail
+model = Transformer("vit_base", img_size=384)
+```
+
+<Tip>
+Higher resolution increases accuracy but requires more memory and compute. Double the resolution means 4x more tokens.
+</Tip>
+
+### Patch Size
+
+```python
+# Standard 16x16 patches
+model = Transformer("vit_base", patch_size=16)  # 196 tokens for 224x224
+
+# Smaller 8x8 patches (more tokens, more compute)
+model = Transformer("vit_base", patch_size=8)   # 784 tokens for 224x224
+```
+
+### Regularization
+
+```python
+model = Transformer("vit_base",
+    drop_rate=0.1,        # Dropout
+    attn_drop_rate=0.0,   # Attention dropout
+    drop_path_rate=0.1,   # Stochastic depth
+)
+```
+
+## Training Tips for ViT
+
+### 1. Use Pretrained Weights
+
+```python
+# ✅ Good
+model = Transformer("vit_base", pretrained=True)
+
+# ❌ Bad (unless you have ImageNet-scale data)
+model = Transformer("vit_base", pretrained=False)
+```
+
+### 2. Lower Learning Rate
+
+```python
+# ViT typically needs lower LR than CNNs
+model.train("cifar10", lr=0.0001)  # vs 0.001 for CNNs
+```
+
+### 3. Longer Warmup
+
+```python
+model.train("imagenet",
+    lr=0.001,
+    warmup_steps=10000,  # Longer warmup
+)
+```
+
+### 4. Strong Augmentation
+
+```python
+from kitepy import DataConfig
+
+data_config = DataConfig(augmentation="randaugment")
+model.train("imagenet", augmentation="randaugment")
+```
+
+### 5. Gradient Checkpointing for Large Models
+
+```python
+# Reduce memory usage for large models
+model.train("imagenet", gradient_checkpointing=True)
+```
+
+## Comparing Architectures
+
+| Architecture | Params | ImageNet Top-1 | Speed | Best For |
+|--------------|--------|----------------|-------|----------|
+| ViT-Tiny | 5.7M | 72.2% | Fast | Prototyping |
+| ViT-Small | 22M | 79.9% | Medium | Small datasets |
+| ViT-Base | 86M | 81.8% | Slow | General use |
+| Swin-Tiny | 28M | 81.3% | Medium | Detection tasks |
+| Swin-Base | 88M | 83.5% | Slow | Best accuracy |
+| DeiT-Small | 22M | 79.9% | Medium | Limited data |
+
+## Memory-Efficient Training
+
+Vision Transformers require significant GPU memory. Use these techniques:
+
+```python
+model.train("imagenet",
+    # Reduce batch size
+    batch_size=32,
+    
+    # Use gradient accumulation
+    gradient_accumulation_steps=4,  # Effective batch: 128
+    
+    # Enable gradient checkpointing
+    gradient_checkpointing=True,
+    
+    # Use mixed precision
+    mixed_precision=True,
+)
+```
+
+## Custom Vision Transformer
+
+Create your own transformer configuration:
+
+```python
+from kitepy import Transformer, TransformerConfig
+
+config = TransformerConfig(
+    arch="vit",
+    img_size=224,
+    patch_size=16,
+    embed_dim=512,
+    depth=8,
+    num_heads=8,
+    mlp_ratio=4.0,
+    num_classes=100,
+    drop_path_rate=0.1,
+)
+
+model = Transformer("custom_vit", config=config)
+model.train("cifar100")
+```
+
+## Profiling
+
+Check the efficiency of different architectures:
+
+```python
+from kitepy import Transformer
+
+for arch in ["vit_tiny", "vit_small", "vit_base"]:
+    model = Transformer(arch, num_classes=10)
+    profile = model.profile()
+    print(f"{arch}:")
+    print(f"  Params: {profile['total_params']:,}")
+    print(f"  Latency: {profile['latency_ms']:.1f}ms")
+    print()
+```
+
+## API Reference
+
+See the full [Transformer API Reference](/api-reference/transformer) for all methods and parameters.

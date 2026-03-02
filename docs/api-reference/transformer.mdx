@@ -1,0 +1,222 @@
+---
+title: 'Transformer'
+description: 'API reference for the Transformer class'
+icon: 'brain'
+---
+
+## Overview
+
+The `Transformer` class provides an interface for Vision Transformers (ViT, DeiT, Swin).
+
+```python
+from kitepy import Transformer
+```
+
+## Constructor
+
+```python
+Transformer(
+    model: Optional[Union[str, nn.Module]] = "vit_base",
+    config: Optional[Union[Dict, TransformerConfig, str]] = None,
+    **kwargs
+)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `model` | `str` or `nn.Module` | `"vit_base"` | Model name or custom PyTorch model |
+| `config` | `dict`, `TransformerConfig`, or `str` | `None` | Configuration object, dict, or path |
+| `**kwargs` | | | Override any config values |
+
+### Examples
+
+```python
+# Using preset
+model = Transformer("vit_base")
+
+# With custom settings
+model = Transformer("vit_base", num_classes=100, pretrained=True)
+
+# With config object
+from kitepy import TransformerConfig
+config = TransformerConfig(img_size=384, num_classes=100)
+model = Transformer("vit_base", config=config)
+```
+
+---
+
+## Methods
+
+The `Transformer` class inherits all methods from `CNN`:
+
+- `train()` - Train the model
+- `evaluate()` - Evaluate on a dataset
+- `predict()` - Run inference
+- `save()` / `load()` - Save and load models
+- `freeze_backbone()` / `unfreeze()` - Transfer learning
+- `describe()` - Print model description
+- `profile()` - Profile performance
+- `export()` - Export for deployment
+- `quantize()` - Quantize model
+- `find_lr()` - Find optimal learning rate
+- `tune()` - Tune hyperparameters
+
+See the [CNN API Reference](/api-reference/cnn) for detailed documentation.
+
+---
+
+## Transformer-Specific Configuration
+
+### Image Size
+
+```python
+# Standard
+model = Transformer("vit_base", img_size=224)
+
+# Higher resolution
+model = Transformer("vit_base", img_size=384)
+```
+
+### Patch Size
+
+```python
+# Standard 16x16 patches
+model = Transformer("vit_base", patch_size=16)
+
+# Smaller 8x8 patches (more tokens)
+model = Transformer("vit_base", patch_size=8)
+```
+
+### Attention Dropout
+
+```python
+model = Transformer("vit_base", attn_drop_rate=0.1)
+```
+
+### Stochastic Depth
+
+```python
+model = Transformer("vit_base", drop_path_rate=0.1)
+```
+
+---
+
+## TransformerConfig
+
+Full configuration options for Vision Transformers:
+
+```python
+from kitepy import TransformerConfig
+
+config = TransformerConfig(
+    # Architecture
+    arch="vit",               # "vit", "deit", "swin"
+    
+    # Image specs
+    img_size=224,             # Input image size
+    patch_size=16,            # Patch size
+    in_channels=3,            # Input channels
+    
+    # Transformer specs
+    embed_dim=768,            # Embedding dimension
+    depth=12,                 # Number of transformer blocks
+    num_heads=12,             # Number of attention heads
+    mlp_ratio=4.0,            # MLP hidden dim ratio
+    qkv_bias=True,            # Bias in QKV projection
+    
+    # Task
+    num_classes=1000,         # Number of output classes
+    
+    # Pretrained
+    pretrained=False,         # Use pretrained weights
+    
+    # Regularization
+    drop_rate=0.0,            # Dropout rate
+    attn_drop_rate=0.0,       # Attention dropout rate
+    drop_path_rate=0.1,       # Stochastic depth rate
+)
+```
+
+---
+
+## Class Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `modality` | `str` | `"vision"` |
+| `model` | `nn.Module` | The underlying PyTorch model |
+| `config` | `TransformerConfig` | The configuration object |
+| `model_name` | `str` | Name of the model |
+| `trained` | `bool` | Whether model has been trained |
+
+---
+
+## Available Presets
+
+```python
+from kitepy import list_models
+
+print(list_models("transformer"))
+# Vision Transformers (ViT)
+# ['vit_tiny', 'vit_small', 'vit_base', 'vit_large', 'vit_huge',
+#
+# Data-efficient Image Transformers (DeiT)
+#  'deit_tiny', 'deit_small', 'deit_base',
+#
+# Swin Transformers
+#  'swin_tiny', 'swin_small', 'swin_base', 'swin_large']
+```
+
+### Preset Details
+
+| Preset | Parameters | embed_dim | depth | num_heads |
+|--------|------------|-----------|-------|-----------|
+| `vit_tiny` | 5.7M | 192 | 12 | 3 |
+| `vit_small` | 22M | 384 | 12 | 6 |
+| `vit_base` | 86M | 768 | 12 | 12 |
+| `vit_large` | 304M | 1024 | 24 | 16 |
+| `vit_huge` | 632M | 1280 | 32 | 16 |
+| `swin_tiny` | 28M | 96 | [2,2,6,2] | - |
+| `swin_small` | 50M | 96 | [2,2,18,2] | - |
+| `swin_base` | 88M | 128 | [2,2,18,2] | - |
+| `swin_large` | 197M | 192 | [2,2,18,2] | - |
+
+---
+
+## Training Tips
+
+### 1. Always Use Pretrained Weights
+
+```python
+# ✅ Good
+model = Transformer("vit_base", pretrained=True)
+
+# ❌ Bad (unless you have ImageNet-scale data)
+model = Transformer("vit_base", pretrained=False)
+```
+
+### 2. Use Lower Learning Rate
+
+```python
+# ViT needs lower LR than CNNs
+model.train("cifar10", lr=0.0001)  # Not 0.001
+```
+
+### 3. Use Longer Warmup
+
+```python
+model.train("imagenet", warmup_steps=10000)
+```
+
+### 4. Consider Memory
+
+```python
+# For large models, reduce batch size
+model.train("imagenet",
+    batch_size=32,
+    gradient_accumulation_steps=4,
+    gradient_checkpointing=True,
+)
+```

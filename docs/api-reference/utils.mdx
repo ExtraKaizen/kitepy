@@ -1,0 +1,77 @@
+---
+title: 'Utilities'
+description: 'API reference for utility functions'
+icon: 'toolbox'
+---
+
+## Overview
+
+kitepy provides several utility functions.
+
+```python
+from kitepy import (
+    print_version_info,
+    print_device_info,
+    get_train_transforms,
+    get_val_transforms,
+)
+```
+
+## print_version_info()
+
+Print package versions.
+
+```python
+print_version_info()
+```
+
+Output:
+```
+========================================
+📦 Package Versions
+========================================
+  kitepy:      0.1.0
+  PyTorch:    2.1.0
+  timm:       0.9.12
+  CUDA:       12.1
+```
+
+## print_device_info()
+
+Print device information.
+
+```python
+print_device_info()
+```
+
+Output:
+```
+========================================
+🖥️  Device Information
+========================================
+  Available:  cuda:0 (NVIDIA RTX 4090)
+  Memory:     24.0 GB
+```
+
+## get_train_transforms()
+
+Get training transforms.
+
+```python
+from kitepy import get_train_transforms
+
+transform = get_train_transforms(
+    img_size=224,
+    augmentation="randaugment"
+)
+```
+
+## get_val_transforms()
+
+Get validation transforms.
+
+```python
+from kitepy import get_val_transforms
+
+transform = get_val_transforms(img_size=224)
+```

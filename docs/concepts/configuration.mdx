@@ -1,0 +1,387 @@
+---
+title: 'Configuration'
+description: 'Master the kitepy configuration system'
+icon: 'sliders'
+---
+
+## Overview
+
+kitepy uses a layered configuration system that balances simplicity with power. You can:
+
+1. **Use defaults** - Works out of the box
+2. **Override with kwargs** - Quick customization
+3. **Use config objects** - Type-safe, IDE-friendly
+4. **Use YAML/JSON files** - Reproducible experiments
+
+## Configuration Priority
+
+When configurations are merged, later sources override earlier ones:
+
+```
+Default Config  →  Preset  →  User Config  →  kwargs
+    (lowest)                                   (highest)
+```
+
+Example:
+
+```python
+from kitepy import CNN
+
+# Default: lr=0.001 (from TrainingConfig default)
+# Preset: no lr override
+# User config: lr=0.01
+# kwargs: lr=0.005
+
+model.train("cifar10", lr=0.005)  # Uses 0.005
+```
+
+## Quick Customization (kwargs)
+
+The simplest way to customize is with keyword arguments:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18", num_classes=10, pretrained=True)
+
+model.train(
+    "cifar10",
+    epochs=50,
+    batch_size=128,
+    lr=0.001,
+    optimizer="adamw",
+    weight_decay=0.05,
+)
+```
+
+## Configuration Objects
+
+For more complex setups, use configuration dataclasses:
+
+### TrainingConfig
+
+Controls the training process:
+
+```python
+from kitepy import TrainingConfig
+
+config = TrainingConfig(
+    # Duration
+    epochs=100,
+    max_steps=None,  # Override epochs if set
+    
+    # Batch size
+    batch_size=64,
+    gradient_accumulation_steps=2,  # Effective batch size: 128
+    
+    # Learning rate
+    lr=0.001,
+    weight_decay=0.01,
+    warmup_steps=500,
+    
+    # Optimizer
+    optimizer="adamw",  # "adam", "sgd", "lion"
+    optimizer_kwargs={},
+    
+    # Scheduler
+    scheduler="cosine",  # "linear", "step", "constant"
+    scheduler_kwargs={},
+    
+    # Regularization
+    max_grad_norm=1.0,
+    dropout=0.0,
+    label_smoothing=0.1,
+    
+    # Mixed precision
+    mixed_precision=True,  # "fp16", "bf16", "fp32"
+    
+    # Checkpointing
+    save_every_n_epochs=1,
+    save_top_k=3,
+    checkpoint_dir="./checkpoints",
+    
+    # Early stopping
+    early_stopping=True,
+    early_stopping_patience=5,
+    early_stopping_min_delta=1e-4,
+    
+    # Reproducibility
+    seed=42,
+    deterministic=False,
+    
+    # Performance
+    num_workers=4,
+    pin_memory=True,
+    
+    # Debugging
+    fast_dev_run=False,  # Run 1 batch only
+    detect_anomaly=False,
+)
+
+model.train("cifar10", **config.to_dict())
+```
+
+### CNNConfig
+
+Controls CNN architecture:
+
+```python
+from kitepy import CNNConfig
+
+config = CNNConfig(
+    # Architecture
+    arch="resnet",
+    depth=50,
+    width_multiplier=1.0,
+    
+    # Task
+    num_classes=1000,
+    in_channels=3,
+    
+    # Pretrained
+    pretrained=True,
+    
+    # Regularization
+    dropout=0.0,
+    drop_path=0.0,
+    
+    # Transfer learning
+    freeze_backbone=False,
+)
+
+model = CNN("resnet50", config=config)
+```
+
+### TransformerConfig
+
+Controls Vision Transformer architecture:
+
+```python
+from kitepy import TransformerConfig
+
+config = TransformerConfig(
+    # Architecture
+    arch="vit",
+    
+    # Image specs
+    img_size=224,
+    patch_size=16,
+    in_channels=3,
+    
+    # Transformer specs
+    embed_dim=768,
+    depth=12,
+    num_heads=12,
+    mlp_ratio=4.0,
+    
+    # Task
+    num_classes=1000,
+    
+    # Regularization
+    drop_rate=0.0,
+    attn_drop_rate=0.0,
+    drop_path_rate=0.1,
+)
+
+model = Transformer("vit_base", config=config)
+```
+
+### DataConfig
+
+Controls data loading:
+
+```python
+from kitepy import DataConfig
+
+config = DataConfig(
+    # Data source
+    train_data="path/to/train",
+    val_data="path/to/val",
+    
+    # Preprocessing
+    augmentation="randaugment",  # "none", "light", "heavy"
+    
+    # Sampling
+    shuffle=True,
+    drop_last=True,
+)
+```
+
+## YAML Configuration
+
+For reproducible experiments, use YAML files:
+
+```yaml config.yaml
+# Model configuration
+model:
+  arch: resnet
+  depth: 50
+  num_classes: 100
+  pretrained: true
+  dropout: 0.2
+
+# Training configuration
+training:
+  epochs: 100
+  batch_size: 256
+  lr: 0.01
+  optimizer: adamw
+  scheduler: cosine
+  weight_decay: 0.05
+  label_smoothing: 0.1
+  
+  # Early stopping
+  early_stopping: true
+  early_stopping_patience: 10
+
+# Data configuration
+data:
+  train_data: /path/to/train
+  val_data: /path/to/val
+  augmentation: randaugment
+```
+
+Load and use:
+
+```python
+from kitepy import CNN
+
+model = CNN(config="config.yaml")
+model.train("cifar100")
+```
+
+Or load configs separately:
+
+```python
+from kitepy import TrainingConfig, CNNConfig
+
+train_config = TrainingConfig.from_yaml("training.yaml")
+model_config = CNNConfig.from_yaml("model.yaml")
+
+model = CNN("resnet50", config=model_config)
+model.train("cifar100", **train_config.to_dict())
+```
+
+## JSON Configuration
+
+JSON files also work:
+
+```json config.json
+{
+  "arch": "resnet",
+  "depth": 50,
+  "num_classes": 100,
+  "pretrained": true
+}
+```
+
+```python
+model = CNN(config="config.json")
+```
+
+## Saving Configuration
+
+Save your configuration for reproducibility:
+
+```python
+# Save to YAML
+config.to_yaml("my_config.yaml")
+
+# Save to JSON
+config.to_json("my_config.json")
+
+# Get as dict
+config_dict = config.to_dict()
+```
+
+## Common Configuration Patterns
+
+### Transfer Learning
+
+```python
+model = CNN("resnet50", 
+    pretrained=True,
+    num_classes=10,
+    freeze_backbone=True,
+)
+
+# Phase 1: Train classifier only
+model.train("my_data", epochs=10, lr=0.01)
+
+# Phase 2: Fine-tune entire model
+model.unfreeze()
+model.train("my_data", epochs=50, lr=0.0001)
+```
+
+### Large Batch Training
+
+```python
+model.train("imagenet",
+    batch_size=64,
+    gradient_accumulation_steps=16,  # Effective: 1024
+    lr=0.4,  # Linear scaling
+    warmup_steps=5000,
+)
+```
+
+### Debugging
+
+```python
+model.train("cifar10",
+    fast_dev_run=True,  # 1 batch only
+    detect_anomaly=True,  # Find NaN/Inf
+)
+```
+
+### Reproducibility
+
+```python
+model.train("cifar10",
+    seed=42,
+    deterministic=True,  # Slower but reproducible
+)
+```
+
+## Auto-Tuning
+
+kitepy can automatically tune some hyperparameters:
+
+### Learning Rate Finder
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18")
+suggested_lr = model.find_lr("cifar10")
+print(f"Suggested LR: {suggested_lr}")
+
+model.train("cifar10", lr=suggested_lr)
+```
+
+### Hyperparameter Search
+
+```python
+# Requires: pip install optuna
+best_params = model.tune(
+    data="cifar10",
+    trials=20,
+    epochs=3,  # Per trial
+)
+
+print(best_params)
+# {'lr': 0.00234, 'batch_size': 64, 'weight_decay': 0.001}
+```
+
+## Inspecting Configuration
+
+See what configuration a model is using:
+
+```python
+model = CNN("resnet50", pretrained=True)
+
+# Print configuration
+model.describe()
+
+# See all available options
+model.explain_config()
+```

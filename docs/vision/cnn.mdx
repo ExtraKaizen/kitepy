@@ -1,0 +1,279 @@
+---
+title: 'CNN Models'
+description: 'Train Convolutional Neural Networks with kitepy'
+icon: 'image'
+---
+
+## Overview
+
+The `CNN` class provides a simple interface for training convolutional neural networks. It supports 30+ architectures out of the box, plus all 800+ models from the timm library.
+
+## Basic Usage
+
+```python
+from kitepy import CNN
+
+# Train ResNet-18 on CIFAR-10
+model = CNN("resnet18")
+model.train("cifar10")
+```
+
+## Supported Architectures
+
+### ResNet Family
+
+```python
+CNN("resnet18").train("cifar10")   # 11.7M params
+CNN("resnet34").train("cifar10")   # 21.8M params
+CNN("resnet50").train("cifar10")   # 25.6M params
+CNN("resnet101").train("cifar10")  # 44.5M params
+CNN("resnet152").train("cifar10")  # 60.2M params
+```
+
+### EfficientNet Family
+
+```python
+CNN("efficientnet_b0").train("cifar10")  # 5.3M params
+CNN("efficientnet_b1").train("cifar10")  # 7.8M params
+CNN("efficientnet_b2").train("cifar10")  # 9.1M params
+CNN("efficientnet_b3").train("cifar10")  # 12M params
+CNN("efficientnet_b4").train("cifar10")  # 19M params
+CNN("efficientnet_b5").train("cifar10")  # 30M params
+CNN("efficientnet_b6").train("cifar10")  # 43M params
+CNN("efficientnet_b7").train("cifar10")  # 66M params
+```
+
+### MobileNet Family
+
+Perfect for mobile and edge deployment:
+
+```python
+CNN("mobilenet_v2").train("cifar10")       # 3.5M params
+CNN("mobilenet_v3_small").train("cifar10") # 2.5M params
+CNN("mobilenet_v3_large").train("cifar10") # 5.5M params
+```
+
+### Other Architectures
+
+```python
+# VGG
+CNN("vgg16").train("cifar10")
+CNN("vgg19").train("cifar10")
+
+# DenseNet
+CNN("densenet121").train("cifar10")
+CNN("densenet169").train("cifar10")
+
+# Wide ResNet
+CNN("wide_resnet50").train("cifar10")
+
+# ResNeXt
+CNN("resnext50").train("cifar10")
+CNN("resnext101").train("cifar10")
+```
+
+### Using timm Models Directly
+
+Any model from [timm](https://github.com/huggingface/pytorch-image-models) works:
+
+```python
+# Use exact timm model names
+CNN("convnext_tiny").train("cifar10")
+CNN("regnetx_016").train("cifar10")
+CNN("rexnet_100").train("cifar10")
+```
+
+<Tip>
+Run `timm.list_models()` to see all 800+ available models.
+</Tip>
+
+## Pretrained Weights
+
+Load ImageNet pretrained weights for transfer learning:
+
+```python
+model = CNN("resnet50", pretrained=True)
+model.train("my_dataset")  # Fine-tune on your data
+```
+
+Pretrained weights are available for most popular architectures.
+
+## Custom Number of Classes
+
+Adapt the model for your number of classes:
+
+```python
+# CIFAR-100 has 100 classes
+model = CNN("resnet50", num_classes=100)
+model.train("cifar100")
+
+# Binary classification
+model = CNN("efficientnet_b0", num_classes=2)
+model.train("my_binary_dataset")
+```
+
+## Transfer Learning
+
+### Freeze and Fine-Tune
+
+```python
+from kitepy import CNN
+
+# Load pretrained model
+model = CNN("resnet50", pretrained=True, num_classes=10)
+
+# Phase 1: Freeze backbone, train only classifier
+model.freeze_backbone()
+model.train("my_dataset", epochs=10, lr=0.01)
+
+# Phase 2: Unfreeze and fine-tune entire model
+model.unfreeze()
+model.train("my_dataset", epochs=50, lr=0.0001)
+```
+
+### Gradual Unfreezing
+
+```python
+# Unfreeze last N layers only
+model.unfreeze(layers=10)  # Unfreeze last 10 layers
+```
+
+## Custom CNN Architecture
+
+Pass your own PyTorch model:
+
+```python
+import torch.nn as nn
+
+# Define custom architecture
+custom_model = nn.Sequential(
+    nn.Conv2d(3, 64, kernel_size=3, padding=1),
+    nn.BatchNorm2d(64),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+    
+    nn.Conv2d(64, 128, kernel_size=3, padding=1),
+    nn.BatchNorm2d(128),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+    
+    nn.Conv2d(128, 256, kernel_size=3, padding=1),
+    nn.BatchNorm2d(256),
+    nn.ReLU(),
+    nn.AdaptiveAvgPool2d(1),
+    
+    nn.Flatten(),
+    nn.Linear(256, 10)
+)
+
+# Use with kitepy
+model = CNN(custom_model)
+model.train("cifar10")
+```
+
+## Model Inspection
+
+### Describe Model
+
+```python
+model = CNN("resnet50", num_classes=10)
+model.describe()
+```
+
+Output:
+```
+======================================================================
+Model: CNN
+Name: resnet50
+Modality: vision
+Trained: False
+======================================================================
+
+📋 Configuration:
+{
+  "arch": "resnet",
+  "depth": 50,
+  "num_classes": 10,
+  "pretrained": false,
+  ...
+}
+
+🏗️  Architecture:
+  Total parameters: 25,557,032
+  Trainable parameters: 25,557,032
+```
+
+### Profile Performance
+
+```python
+profile = model.profile()
+print(f"Parameters: {profile['total_params']:,}")
+print(f"Model size: {profile['model_size_mb']:.1f} MB")
+print(f"Latency: {profile['latency_ms']:.1f} ms")
+print(f"Throughput: {profile['throughput']:.1f} samples/sec")
+```
+
+## Inference
+
+### Single Image
+
+```python
+import torch
+from PIL import Image
+from torchvision import transforms
+
+# Load trained model
+model = CNN.load("my_model.pt")
+
+# Preprocess image
+transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+image = Image.open("cat.jpg")
+input_tensor = transform(image).unsqueeze(0)
+
+# Predict
+output = model.predict(input_tensor)
+predicted_class = output.argmax(dim=1).item()
+print(f"Predicted class: {predicted_class}")
+```
+
+### Batch Inference
+
+```python
+# Process multiple images
+outputs = model.predict(batch_of_images)
+predictions = outputs.argmax(dim=1)
+```
+
+## Save and Load
+
+```python
+# Train and save
+model = CNN("resnet18")
+model.train("cifar10", epochs=10)
+model.save("my_resnet18.pt")
+
+# Load later
+loaded_model = CNN.load("my_resnet18.pt")
+loaded_model.evaluate("cifar10")
+```
+
+## List Available Models
+
+```python
+from kitepy import list_models
+
+# List all CNN presets
+cnn_models = list_models("cnn")
+print(cnn_models)
+# ['resnet18', 'resnet34', 'resnet50', 'efficientnet_b0', ...]
+```
+
+## API Reference
+
+See the full [CNN API Reference](/api-reference/cnn) for all methods and parameters.

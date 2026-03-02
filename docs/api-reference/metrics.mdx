@@ -1,0 +1,27 @@
+---
+title: 'Metrics'
+description: 'API reference for training metrics'
+icon: 'chart-simple'
+---
+
+## Training Metrics
+
+| Metric | Description |
+|--------|-------------|
+| `train_loss` | Training loss per epoch |
+| `train_acc` | Training accuracy |
+| `val_loss` | Validation loss |
+| `val_acc` | Validation accuracy |
+| `learning_rate` | Current LR |
+
+```python
+history = model.train("cifar10", epochs=10)
+print(history)
+```
+
+## Evaluation Metrics
+
+```python
+metrics = model.evaluate("cifar10")
+# {'loss': 0.523, 'accuracy': 85.4, 'top5_accuracy': 97.2}
+```

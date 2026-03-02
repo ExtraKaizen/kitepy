@@ -1,0 +1,245 @@
+---
+title: 'Augmentation'
+description: 'Data augmentation strategies for better models'
+icon: 'wand-magic-sparkles'
+---
+
+## Overview
+
+Data augmentation improves model generalization by creating variations of training images. kitepy provides several built-in augmentation strategies.
+
+## Augmentation Strategies
+
+### None
+
+No augmentation - just resize and normalize:
+
+```python
+model.train("cifar10", augmentation="none")
+```
+
+Transforms applied:
+- Resize to target size
+- ToTensor
+- Normalize
+
+### Light / Auto (Default)
+
+Basic augmentation for general use:
+
+```python
+model.train("cifar10", augmentation="auto")
+# or
+model.train("cifar10", augmentation="light")
+```
+
+Transforms applied:
+- RandomResizedCrop
+- RandomHorizontalFlip
+- ToTensor
+- Normalize
+
+### Heavy
+
+Strong augmentation for better generalization:
+
+```python
+model.train("cifar10", augmentation="heavy")
+```
+
+Transforms applied:
+- RandomResizedCrop
+- RandomHorizontalFlip
+- ColorJitter (brightness, contrast, saturation)
+- RandomRotation (15°)
+- ToTensor
+- Normalize
+
+### RandAugment
+
+State-of-the-art automatic augmentation policy:
+
+```python
+model.train("cifar10", augmentation="randaugment")
+```
+
+RandAugment randomly applies N transformations from a predefined set, each with magnitude M.
+
+<Info>
+RandAugment typically achieves 1-2% higher accuracy on CIFAR-10/100 compared to basic augmentation.
+</Info>
+
+### TrivialAugment
+
+Even simpler than RandAugment, often equally effective:
+
+```python
+model.train("cifar10", augmentation="trivialaugment")
+```
+
+TrivialAugment applies a single random transformation with random magnitude.
+
+### AutoAugment
+
+Learned augmentation policy from Google:
+
+```python
+model.train("imagenet", augmentation="autoaugment")
+```
+
+Uses the ImageNet-optimized policy.
+
+## Comparison
+
+| Strategy | Accuracy Gain | Speed Impact | Best For |
+|----------|--------------|--------------|----------|
+| `none` | Baseline | None | Quick tests |
+| `light` | +1-2% | Minimal | General use |
+| `heavy` | +2-3% | Slight | Small datasets |
+| `randaugment` | +2-4% | Moderate | Best accuracy |
+| `trivialaugment` | +2-4% | Minimal | Best balance |
+| `autoaugment` | +2-4% | Moderate | ImageNet |
+
+## Custom Augmentation
+
+### Using DataConfig
+
+```python
+from kitepy import DataConfig
+
+data_config = DataConfig(
+    augmentation="randaugment",
+    # Add custom options here
+)
+```
+
+### Using torchvision Transforms
+
+For full control, create your own transforms:
+
+```python
+from torchvision import transforms
+
+custom_transform = transforms.Compose([
+    transforms.RandomResizedCrop(224),
+    transforms.RandomHorizontalFlip(),
+    transforms.ColorJitter(0.4, 0.4, 0.4, 0.1),
+    transforms.RandomGrayscale(p=0.2),
+    transforms.GaussianBlur(kernel_size=23),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+
+# Create custom dataset
+from torchvision import datasets
+train_dataset = datasets.CIFAR10(
+    root='./data',
+    train=True,
+    transform=custom_transform
+)
+
+# Use with kitepy
+from torch.utils.data import DataLoader
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+model.train(train_loader)
+```
+
+## Mixup and CutMix
+
+Apply mixup or cutmix during training:
+
+```python
+model.train("cifar10",
+    mixup_alpha=0.2,   # Mixup strength
+    cutmix_alpha=1.0,  # CutMix strength
+)
+```
+
+### Mixup
+
+Blends two images and their labels:
+- `mixup_alpha=0`: Disabled
+- `mixup_alpha=0.2`: Light mixing (recommended)
+- `mixup_alpha=1.0`: Strong mixing
+
+### CutMix
+
+Cuts and pastes rectangular regions:
+- `cutmix_alpha=0`: Disabled
+- `cutmix_alpha=1.0`: Standard CutMix
+
+<Tip>
+Mixup and CutMix often provide an additional 0.5-1% accuracy improvement on top of RandAugment.
+</Tip>
+
+## Augmentation for Different Tasks
+
+### Image Classification
+
+```python
+model.train("imagenet",
+    augmentation="randaugment",
+    mixup_alpha=0.2,
+    cutmix_alpha=1.0,
+)
+```
+
+### Transfer Learning
+
+When fine-tuning, lighter augmentation is often better:
+
+```python
+model = CNN("resnet50", pretrained=True)
+model.freeze_backbone()
+model.train("my_data", augmentation="light")  # Less aggressive
+```
+
+### Small Datasets
+
+Strong augmentation helps prevent overfitting:
+
+```python
+model.train("small_dataset",
+    augmentation="randaugment",
+    mixup_alpha=0.4,
+)
+```
+
+## Getting Transforms Directly
+
+Use kitepy's transform functions in your own code:
+
+```python
+from kitepy import get_train_transforms
+
+# Get transforms for training
+train_transform = get_train_transforms(
+    img_size=224,
+    augmentation="randaugment"
+)
+
+# Apply to your dataset
+from torchvision import datasets
+train_dataset = datasets.ImageFolder(
+    '/path/to/train',
+    transform=train_transform
+)
+```
+
+## Test-Time Augmentation (TTA)
+
+Apply augmentations at inference time for better predictions:
+
+```python
+# Coming in Phase 2
+predictions = model.predict(images, tta=True)
+```
+
+This will create multiple augmented versions of each image and average the predictions.
+
+## Performance Tips
+
+1. **Start simple**: Begin with `light` augmentation, add more if overfitting
+2. **Match to dataset size**: Larger datasets need less augmentation
+3. **Balance speed and accuracy**: `trivialaugment` is fast and effective
+4. **Use mixup/cutmix carefully**: Can hurt small dataset performance

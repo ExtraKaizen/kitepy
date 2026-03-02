@@ -1,0 +1,182 @@
+---
+title: 'Installation'
+description: 'Install kitepy on your system'
+icon: 'download'
+---
+
+## Requirements
+
+kitepy requires:
+- **Python**: 3.8 or higher
+- **PyTorch**: 2.0.0 or higher
+- **timm**: 0.9.0 or higher (for vision models)
+
+## Installation Methods
+
+### Basic Install (Recommended)
+
+Install the minimal version with CNN support:
+
+```bash
+pip install kitepy
+```
+
+### With GPU Support
+
+Make sure you have CUDA installed, then:
+
+```bash
+# PyTorch with CUDA 11.8
+pip install kitepy torch torchvision --extra-index-url https://download.pytorch.org/whl/cu118
+
+# PyTorch with CUDA 12.1
+pip install kitepy torch torchvision --extra-index-url https://download.pytorch.org/whl/cu121
+```
+
+### Advanced Installation
+
+Install optional features (Note: LLM/Distributed features are prepared but modules are coming soon):
+
+```bash
+# All current vision features
+pip install kitepy[vision]
+
+# Full install including prepared dependencies for upcoming LLM module
+pip install kitepy[all]
+```
+
+### Development Install
+
+For contributing or modifying kitepy:
+
+```bash
+git clone https://github.com/ExtraKaizen/kitepy
+cd kitepy
+pip install -e .
+```
+
+## Verify Installation
+
+Run this to verify everything is working:
+
+```python
+from kitepy import CNN, print_device_info, print_version_info
+
+# Check versions
+print_version_info()
+
+# Check device (CPU/GPU)
+print_device_info()
+
+# Quick test
+model = CNN("resnet18")
+model.train("synthetic", epochs=1, fast_dev_run=True)
+```
+
+You should see output like:
+
+```
+========================================
+📦 Package Versions
+========================================
+  kitepy:      0.1.0
+  PyTorch:    2.1.0
+  timm:       0.9.12
+  CUDA:       12.1
+
+========================================
+🖥️  Device Information
+========================================
+  Available:  cuda:0 (NVIDIA RTX 4090)
+  Memory:     24.0 GB
+
+✓ Created CNN model: resnet18
+  - Architecture: resnet
+  - Parameters: 11,689,512
+```
+
+## Optional Dependencies
+
+### For Vision Transformers
+
+```bash
+pip install timm>=0.9.0
+```
+
+### For Data Augmentation (RandAugment, TrivialAugment)
+
+```bash
+pip install torchvision>=0.15.0
+```
+
+### For Logging (Weights & Biases)
+
+```bash
+pip install wandb
+```
+
+### For Logging (TensorBoard)
+
+```bash
+pip install tensorboard
+```
+
+### For Hyperparameter Tuning
+
+```bash
+pip install optuna
+```
+
+### For Model Export (ONNX)
+
+```bash
+pip install onnx onnxruntime
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="CUDA not found">
+    Make sure you have the correct CUDA version installed. Check with:
+    ```bash
+    nvidia-smi
+    ```
+    Then install PyTorch for your CUDA version from [pytorch.org](https://pytorch.org/get-started/locally/).
+  </Accordion>
+
+  <Accordion title="timm not found">
+    Install timm manually:
+    ```bash
+    pip install timm>=0.9.0
+    ```
+  </Accordion>
+
+  <Accordion title="Out of memory errors">
+    Try reducing batch size:
+    ```python
+    model.train("cifar10", batch_size=16)
+    ```
+    Or enable gradient checkpointing:
+    ```python
+    model.train("cifar10", gradient_checkpointing=True)
+    ```
+  </Accordion>
+
+  <Accordion title="Slow training on CPU">
+    Training on CPU is significantly slower. If you don't have a GPU, use `fast_dev_run=True` for quick tests:
+    ```python
+    model.train("cifar10", fast_dev_run=True)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Train your first model
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/concepts/philosophy">
+    Understand the design
+  </Card>
+</CardGroup>

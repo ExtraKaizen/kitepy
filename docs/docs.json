@@ -1,0 +1,158 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "kitepy",
+  "colors": {
+    "primary": "#7C3AED",
+    "light": "#A855F7",
+    "dark": "#5B21B6"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/ExtraKaizen/kitepy"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/quickstart"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/philosophy",
+              "concepts/architecture",
+              "concepts/configuration"
+            ]
+          },
+          {
+            "group": "Vision Models",
+            "pages": [
+              "vision/cnn",
+              "vision/transformers",
+              "vision/datasets",
+              "vision/augmentation"
+            ]
+          },
+          {
+            "group": "Training",
+            "pages": [
+              "training/basics",
+              "training/callbacks",
+              "training/optimization",
+              "training/distributed"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/transfer-learning",
+              "advanced/profiling",
+              "advanced/export",
+              "advanced/hyperparameter-tuning"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Models",
+            "pages": [
+              "api-reference/cnn",
+              "api-reference/transformer",
+              "api-reference/vision"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api-reference/training-config",
+              "api-reference/model-config",
+              "api-reference/data-config"
+            ]
+          },
+          {
+            "group": "Core",
+            "pages": [
+              "api-reference/engine",
+              "api-reference/callbacks",
+              "api-reference/metrics"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api-reference/presets",
+              "api-reference/utils"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Examples",
+        "groups": [
+          {
+            "group": "Tutorials",
+            "pages": [
+              "examples/quickstart-cnn",
+              "examples/quickstart-vit",
+              "examples/transfer-learning",
+              "examples/custom-model"
+            ]
+          },
+          {
+            "group": "Real-World Projects",
+            "pages": [
+              "examples/cifar-classification",
+              "examples/imagenet-training",
+              "examples/fine-tuning-pretrained"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/ExtraKaizen/kitepy",
+          "icon": "github"
+        },
+        {
+          "anchor": "PyPI",
+          "href": "https://pypi.org/project/kitepy/",
+          "icon": "python"
+        }
+      ]
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/ExtraKaizen/kitepy",
+      "x": "https://x.com/kitepy"
+    }
+  }
+}

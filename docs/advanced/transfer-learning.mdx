@@ -1,0 +1,284 @@
+---
+title: 'Transfer Learning'
+description: 'Fine-tune pretrained models on your data'
+icon: 'share'
+---
+
+## Overview
+
+Transfer learning leverages models pretrained on large datasets (like ImageNet) and adapts them to your specific task. This is the recommended approach for most real-world applications.
+
+## Why Transfer Learning?
+
+<CardGroup cols={2}>
+  <Card title="Less Data Required" icon="database">
+    Pretrained models already understand image features, so you need fewer examples.
+  </Card>
+  <Card title="Faster Training" icon="bolt">
+    The backbone is already trained; you only fine-tune the top layers.
+  </Card>
+  <Card title="Better Results" icon="chart-line">
+    Often achieves higher accuracy than training from scratch.
+  </Card>
+  <Card title="Works Everywhere" icon="globe">
+    Even small datasets can benefit from ImageNet pretraining.
+  </Card>
+</CardGroup>
+
+## Basic Transfer Learning
+
+### Step 1: Load Pretrained Model
+
+```python
+from kitepy import CNN
+
+# Load ResNet-50 with ImageNet weights
+model = CNN("resnet50", pretrained=True, num_classes=10)
+```
+
+### Step 2: Freeze Backbone (Optional)
+
+```python
+# Freeze convolutional layers
+model.freeze_backbone()
+```
+
+### Step 3: Train on Your Data
+
+```python
+model.train("my_dataset", epochs=10, lr=0.01)
+```
+
+### Step 4: Fine-Tune (Optional)
+
+```python
+# Unfreeze for full fine-tuning
+model.unfreeze()
+model.train("my_dataset", epochs=50, lr=0.0001)
+```
+
+## What "Freeze" Means
+
+When you freeze the backbone:
+
+| Layer Type | Frozen? | What Happens |
+|------------|---------|--------------|
+| Conv layers | ✅ Yes | Weights don't update |
+| BatchNorm | ✅ Yes | Running stats fixed |
+| Classifier | ❌ No | Learns new features |
+
+This is why you can use a higher learning rate - only the classifier is training.
+
+## Two-Stage Fine-Tuning
+
+The most common transfer learning recipe:
+
+```python
+from kitepy import CNN
+
+# Stage 1: Train classifier only
+model = CNN("resnet50", pretrained=True, num_classes=100)
+model.freeze_backbone()
+model.train("my_dataset", 
+    epochs=10, 
+    lr=0.01,  # High LR for linear layer
+)
+
+# Stage 2: Fine-tune entire model
+model.unfreeze()
+model.train("my_dataset", 
+    epochs=50, 
+    lr=0.0001,  # Low LR for pretrained weights
+)
+```
+
+## Gradual Unfreezing
+
+Unfreeze layers progressively for better stability:
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet50", pretrained=True, num_classes=10)
+
+# Phase 1: Only classifier
+model.freeze_backbone()
+model.train("my_dataset", epochs=5, lr=0.01)
+
+# Phase 2: Last few layers
+model.unfreeze(layers=10)  # Unfreeze last 10 layers
+model.train("my_dataset", epochs=10, lr=0.001)
+
+# Phase 3: Full model
+model.unfreeze()
+model.train("my_dataset", epochs=20, lr=0.0001)
+```
+
+## Discriminative Learning Rates
+
+Use different learning rates for different layers:
+
+```python
+# Coming in Phase 2
+model.train("my_dataset",
+    lr=[0.0001, 0.001, 0.01],  # [backbone, mid, head]
+)
+```
+
+## Transfer Learning for Vision Transformers
+
+ViTs also benefit from pretraining, but often need different recipes:
+
+```python
+from kitepy import Transformer
+
+# Always use pretrained weights for ViT
+model = Transformer("vit_base", pretrained=True, num_classes=10)
+
+# Lower learning rate than CNNs
+model.train("my_dataset",
+    epochs=50,
+    lr=0.00001,
+    warmup_steps=500,
+)
+```
+
+<Warning>
+Training Vision Transformers from scratch on small datasets typically yields poor results. Always use `pretrained=True`.
+</Warning>
+
+## Choosing a Pretrained Model
+
+### For Small Datasets
+
+Use smaller models to avoid overfitting:
+
+```python
+# Good for small datasets
+CNN("resnet18", pretrained=True)
+CNN("efficientnet_b0", pretrained=True)
+```
+
+### For Medium Datasets
+
+Balance between capacity and overfitting:
+
+```python
+CNN("resnet50", pretrained=True)
+CNN("efficientnet_b2", pretrained=True)
+```
+
+### For Large Datasets
+
+Use larger models:
+
+```python
+CNN("resnet101", pretrained=True)
+Transformer("vit_base", pretrained=True)
+```
+
+## Domain-Specific Pretraining
+
+Different pretrained weights for different domains:
+
+```python
+# ImageNet pretrained (general)
+model = CNN("resnet50", pretrained=True)
+
+# Coming in Phase 2: Domain-specific weights
+# model = CNN("resnet50", pretrained="medical")
+# model = CNN("resnet50", pretrained="satellite")
+```
+
+## Tips for Success
+
+### 1. Match Image Size
+
+Use similar image sizes to pretraining:
+
+```python
+# ImageNet models expect 224x224
+model.train("my_dataset", img_size=224)
+```
+
+### 2. Use Similar Preprocessing
+
+Keep the same normalization:
+
+```python
+# ImageNet normalization (default)
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
+```
+
+### 3. Start with Frozen Backbone
+
+Especially for small datasets:
+
+```python
+model.freeze_backbone()
+model.train("small_dataset", epochs=20, lr=0.01)
+```
+
+### 4. Use Lower Learning Rate for Fine-Tuning
+
+```python
+# After unfreezing
+model.train("my_dataset", lr=0.0001)  # 10x lower
+```
+
+### 5. Add Regularization
+
+Prevent overfitting on small datasets:
+
+```python
+model.train("small_dataset",
+    dropout=0.2,
+    weight_decay=0.01,
+    augmentation="randaugment",
+)
+```
+
+## When NOT to Use Transfer Learning
+
+Transfer learning may not help when:
+
+- Your domain is very different from ImageNet (e.g., medical images, satellite imagery)
+- You have millions of samples
+- You need a very small/fast model
+
+In these cases, consider training from scratch or using domain-specific pretrained weights.
+
+## Example: Dogs vs Cats
+
+Complete example for binary classification:
+
+```python
+from kitepy import CNN
+
+# Load pretrained model
+model = CNN("efficientnet_b0", pretrained=True, num_classes=2)
+
+# Phase 1: Feature extraction
+model.freeze_backbone()
+model.train(
+    "/path/to/dogs_vs_cats",
+    epochs=5,
+    lr=0.001,
+    batch_size=32,
+)
+
+# Phase 2: Fine-tuning
+model.unfreeze()
+model.train(
+    "/path/to/dogs_vs_cats",
+    epochs=20,
+    lr=0.0001,
+    weight_decay=0.01,
+)
+
+# Save and evaluate
+model.save("dogs_vs_cats_model.pt")
+metrics = model.evaluate("/path/to/dogs_vs_cats/test")
+print(f"Test Accuracy: {metrics['accuracy']:.2f}%")
+```

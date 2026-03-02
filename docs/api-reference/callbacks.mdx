@@ -1,0 +1,342 @@
+---
+title: 'Callbacks'
+description: 'API reference for training callbacks'
+icon: 'plug'
+---
+
+## Overview
+
+Callbacks allow you to inject custom behavior at various points during training.
+
+```python
+from kitepy.core.callbacks import (
+    Callback,
+    EarlyStopping,
+    ModelCheckpoint,
+    LRMonitor,
+    ProgressLogger,
+    WandbLogger,
+    TensorBoardLogger,
+    LambdaCallback,
+)
+```
+
+---
+
+## Base Callback
+
+All callbacks inherit from the `Callback` base class.
+
+### Available Hooks
+
+```python
+class Callback:
+    def on_train_start(self, trainer, **kwargs):
+        """Called at the start of training."""
+        pass
+    
+    def on_train_end(self, trainer, **kwargs):
+        """Called at the end of training."""
+        pass
+    
+    def on_epoch_start(self, trainer, epoch, **kwargs):
+        """Called at the start of each epoch."""
+        pass
+    
+    def on_epoch_end(self, trainer, epoch, metrics, **kwargs):
+        """Called at the end of each epoch."""
+        pass
+    
+    def on_batch_start(self, trainer, batch_idx, **kwargs):
+        """Called at the start of each batch."""
+        pass
+    
+    def on_batch_end(self, trainer, batch_idx, loss, **kwargs):
+        """Called at the end of each batch."""
+        pass
+    
+    def on_validation_start(self, trainer, **kwargs):
+        """Called at the start of validation."""
+        pass
+    
+    def on_validation_end(self, trainer, metrics, **kwargs):
+        """Called at the end of validation."""
+        pass
+```
+
+---
+
+## EarlyStopping
+
+Stop training when a metric stops improving.
+
+### Constructor
+
+```python
+EarlyStopping(
+    monitor: str = 'val_loss',
+    patience: int = 5,
+    min_delta: float = 1e-4,
+    mode: str = 'min'
+)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `monitor` | `str` | `"val_loss"` | Metric to monitor |
+| `patience` | `int` | `5` | Epochs to wait for improvement |
+| `min_delta` | `float` | `1e-4` | Minimum change to qualify as improvement |
+| `mode` | `str` | `"min"` | `"min"` or `"max"` |
+
+### Example
+
+```python
+callback = EarlyStopping(
+    monitor='val_loss',
+    patience=10,
+    min_delta=0.001,
+)
+model.train("cifar10", callbacks=[callback])
+```
+
+---
+
+## ModelCheckpoint
+
+Save model checkpoints during training.
+
+### Constructor
+
+```python
+ModelCheckpoint(
+    filepath: str = "checkpoints/model_{epoch:02d}.pt",
+    monitor: str = 'val_loss',
+    save_best_only: bool = False,
+    save_top_k: int = 3,
+    mode: str = 'min'
+)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `filepath` | `str` | See default | Path pattern for checkpoints |
+| `monitor` | `str` | `"val_loss"` | Metric to monitor |
+| `save_best_only` | `bool` | `False` | Only save best model |
+| `save_top_k` | `int` | `3` | Keep top K checkpoints |
+| `mode` | `str` | `"min"` | `"min"` or `"max"` |
+
+### Filepath Patterns
+
+- `{epoch}` - Epoch number
+- `{val_loss}` - Validation loss
+- `{train_loss}` - Training loss
+- `{val_acc}` - Validation accuracy
+
+### Example
+
+```python
+callback = ModelCheckpoint(
+    filepath="checkpoints/resnet_{epoch:02d}_{val_loss:.4f}.pt",
+    monitor='val_loss',
+    save_best_only=True,
+)
+model.train("cifar10", callbacks=[callback])
+```
+
+---
+
+## LRMonitor
+
+Log learning rate at each epoch.
+
+### Constructor
+
+```python
+LRMonitor()
+```
+
+### Example
+
+```python
+callback = LRMonitor()
+model.train("cifar10", callbacks=[callback])
+```
+
+---
+
+## ProgressLogger
+
+Log training progress at intervals.
+
+### Constructor
+
+```python
+ProgressLogger(log_every_n_steps: int = 50)
+```
+
+### Example
+
+```python
+callback = ProgressLogger(log_every_n_steps=100)
+model.train("cifar10", callbacks=[callback])
+```
+
+---
+
+## WandbLogger
+
+Log metrics to Weights & Biases.
+
+### Constructor
+
+```python
+WandbLogger(
+    project: str,
+    name: Optional[str] = None,
+    config: Optional[Dict] = None,
+    **kwargs
+)
+```
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `project` | `str` | W&B project name |
+| `name` | `str` | Run name (optional) |
+| `config` | `dict` | Configuration to log |
+| `**kwargs` | | Additional W&B init args |
+
+### Example
+
+```python
+callback = WandbLogger(
+    project="cifar10-experiments",
+    name="resnet50-baseline",
+    config={"lr": 0.001, "batch_size": 32}
+)
+model.train("cifar10", callbacks=[callback])
+```
+
+<Note>
+Requires: `pip install wandb`
+</Note>
+
+---
+
+## TensorBoardLogger
+
+Log metrics to TensorBoard.
+
+### Constructor
+
+```python
+TensorBoardLogger(log_dir: str = "runs")
+```
+
+### Example
+
+```python
+callback = TensorBoardLogger(log_dir="runs/experiment1")
+model.train("cifar10", callbacks=[callback])
+```
+
+View logs:
+```bash
+tensorboard --logdir runs
+```
+
+---
+
+## LambdaCallback
+
+Create simple callbacks with lambda functions.
+
+### Constructor
+
+```python
+LambdaCallback(
+    on_train_start: Optional[Callable] = None,
+    on_train_end: Optional[Callable] = None,
+    on_epoch_start: Optional[Callable] = None,
+    on_epoch_end: Optional[Callable] = None,
+    on_batch_start: Optional[Callable] = None,
+    on_batch_end: Optional[Callable] = None,
+    on_validation_start: Optional[Callable] = None,
+    on_validation_end: Optional[Callable] = None,
+)
+```
+
+### Example
+
+```python
+callback = LambdaCallback(
+    on_epoch_end=lambda trainer, epoch, metrics, **kwargs: 
+        print(f"Epoch {epoch}: {metrics['val_acc']:.2f}%")
+)
+model.train("cifar10", callbacks=[callback])
+```
+
+---
+
+## CallbackList
+
+Container for managing multiple callbacks.
+
+### Constructor
+
+```python
+CallbackList(callbacks: List[Callback])
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `should_stop()` | Check if any callback wants to stop training |
+| `on_*()` | Delegates to all callbacks |
+
+### Example
+
+```python
+from kitepy.core.callbacks import CallbackList
+
+callbacks = CallbackList([
+    EarlyStopping(patience=5),
+    ModelCheckpoint(save_best_only=True),
+    LRMonitor(),
+])
+
+# Used internally by Engine
+```
+
+---
+
+## Creating Custom Callbacks
+
+```python
+from kitepy.core.callbacks import Callback
+
+class MyCallback(Callback):
+    def __init__(self, log_file):
+        self.log_file = log_file
+    
+    def on_train_start(self, trainer, **kwargs):
+        with open(self.log_file, 'w') as f:
+            f.write("Training started\n")
+    
+    def on_epoch_end(self, trainer, epoch, metrics, **kwargs):
+        with open(self.log_file, 'a') as f:
+            f.write(f"Epoch {epoch}: {metrics}\n")
+    
+    def on_train_end(self, trainer, **kwargs):
+        with open(self.log_file, 'a') as f:
+            f.write("Training complete\n")
+
+# Use it
+model.train("cifar10", callbacks=[MyCallback("train.log")])
+```

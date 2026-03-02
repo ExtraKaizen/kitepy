@@ -1,0 +1,126 @@
+---
+title: 'DataConfig'
+description: 'API reference for DataConfig'
+icon: 'database'
+---
+
+## Overview
+
+`DataConfig` controls data loading and preprocessing.
+
+```python
+from kitepy import DataConfig
+```
+
+## Constructor
+
+```python
+DataConfig(**kwargs)
+```
+
+## Parameters
+
+### Data Sources
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `train_data` | `str` | `None` | Path to training data |
+| `val_data` | `str` | `None` | Path to validation data |
+| `test_data` | `str` | `None` | Path to test data |
+
+### Preprocessing
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `augmentation` | `str` | `"auto"` | Augmentation strategy |
+| `img_size` | `int` | `224` | Target image size |
+
+Available augmentation strategies:
+- `"none"` - No augmentation
+- `"light"` / `"auto"` - Basic augmentation
+- `"heavy"` - Strong augmentation
+- `"randaugment"` - RandAugment
+- `"trivialaugment"` - TrivialAugment
+- `"autoaugment"` - AutoAugment
+
+### Sampling
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `shuffle` | `bool` | `True` | Shuffle training data |
+| `drop_last` | `bool` | `True` | Drop last incomplete batch |
+
+### Mixup / CutMix
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `mixup_alpha` | `float` | `0.0` | Mixup alpha (0 to disable) |
+| `cutmix_alpha` | `float` | `0.0` | CutMix alpha (0 to disable) |
+
+---
+
+## Methods
+
+### to_dict()
+
+Convert to dictionary:
+
+```python
+config = DataConfig(augmentation="randaugment")
+config_dict = config.to_dict()
+```
+
+### from_yaml() / to_yaml()
+
+Load/save from YAML:
+
+```python
+config = DataConfig.from_yaml("data_config.yaml")
+config.to_yaml("data_config.yaml")
+```
+
+---
+
+## Usage Examples
+
+### Basic Usage
+
+```python
+config = DataConfig(
+    augmentation="randaugment",
+    img_size=224,
+)
+
+model.train("cifar10", **config.to_dict())
+```
+
+### Full Configuration
+
+```python
+config = DataConfig(
+    train_data="/path/to/train",
+    val_data="/path/to/val",
+    augmentation="heavy",
+    img_size=224,
+    shuffle=True,
+    drop_last=True,
+    mixup_alpha=0.2,
+    cutmix_alpha=1.0,
+)
+
+model.train(**config.to_dict())
+```
+
+### From YAML
+
+```yaml data.yaml
+augmentation: randaugment
+img_size: 224
+mixup_alpha: 0.2
+cutmix_alpha: 1.0
+```
+
+```python
+config = DataConfig.from_yaml("data.yaml")
+model.train("cifar10", **config.to_dict())
+```

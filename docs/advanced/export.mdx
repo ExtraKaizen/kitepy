@@ -1,0 +1,277 @@
+---
+title: 'Model Export'
+description: 'Export models for production deployment'
+icon: 'box-archive'
+---
+
+## Overview
+
+kitepy supports exporting trained models in various formats for production deployment:
+
+- **PyTorch** (.pt) - Default, for Python environments
+- **TorchScript** (.pt) - Portable PyTorch, no Python needed
+- **ONNX** (.onnx) - Cross-platform, optimized runtimes
+
+## Save and Load (PyTorch)
+
+### Save Model
+
+```python
+from kitepy import CNN
+
+model = CNN("resnet18")
+model.train("cifar10", epochs=10)
+
+# Save model and config
+model.save("my_model.pt")
+```
+
+This saves:
+- Model weights
+- Configuration
+- Training state
+
+### Load Model
+
+```python
+from kitepy import CNN
+
+model = CNN.load("my_model.pt")
+
+# Use for inference
+predictions = model.predict(images)
+```
+
+## TorchScript Export
+
+TorchScript creates a portable model that can run without Python:
+
+```python
+model = CNN("resnet18")
+model.train("cifar10")
+
+# Export to TorchScript
+model.export("model_scripted.pt", format="torchscript")
+```
+
+### Loading TorchScript
+
+```python
+import torch
+
+# Load without kitepy (pure PyTorch)
+model = torch.jit.load("model_scripted.pt")
+
+# Inference
+output = model(input_tensor)
+```
+
+### Benefits
+
+- Runs in C++ applications
+- No Python runtime needed
+- Can be optimized by TorchScript JIT
+
+## ONNX Export
+
+ONNX (Open Neural Network Exchange) enables cross-platform deployment:
+
+```python
+model = CNN("resnet18")
+model.train("cifar10")
+
+# Export to ONNX
+model.export("model.onnx", format="onnx")
+```
+
+<Note>
+Requires: `pip install onnx`
+</Note>
+
+### ONNX Options
+
+```python
+model.export("model.onnx", 
+    format="onnx",
+    opset_version=17,     # ONNX opset version
+    dynamic_axes=True,    # Support variable batch size
+)
+```
+
+### Running ONNX Models
+
+With ONNX Runtime:
+
+```python
+import onnxruntime as ort
+import numpy as np
+
+# Create session
+session = ort.InferenceSession("model.onnx")
+
+# Prepare input
+input_name = session.get_inputs()[0].name
+input_data = np.random.randn(1, 3, 224, 224).astype(np.float32)
+
+# Run inference
+outputs = session.run(None, {input_name: input_data})
+```
+
+<Tip>
+ONNX Runtime is often 2-3x faster than PyTorch for inference.
+</Tip>
+
+### ONNX Optimization
+
+```python
+# Optimize the ONNX model
+import onnxruntime.transformers.optimizer as optimizer
+
+optimized = optimizer.optimize_model("model.onnx")
+optimized.save_model_to_file("model_optimized.onnx")
+```
+
+## Quantization
+
+Reduce model size and improve inference speed:
+
+### Dynamic Quantization
+
+```python
+model = CNN("resnet18")
+model.train("cifar10")
+
+# Quantize to INT8
+model.quantize(bits=8)
+
+# Export quantized model
+model.export("model_quantized.pt", format="torchscript")
+```
+
+### Quantization Benefits
+
+| Precision | Model Size | Speed | Accuracy |
+|-----------|-----------|-------|----------|
+| FP32 | 100% | 1x | Baseline |
+| FP16 | 50% | 1.5-2x | ~Same |
+| INT8 | 25% | 2-4x | Slight drop |
+
+### FP16 Inference
+
+```python
+# Convert to half precision
+model.half()
+
+# Or export as FP16
+model.export("model_fp16.onnx", format="onnx", precision="fp16")
+```
+
+## Comparison of Formats
+
+| Format | Size | Speed | Portability | Use Case |
+|--------|------|-------|-------------|----------|
+| PyTorch (.pt) | Largest | Baseline | Python only | Development |
+| TorchScript | Same | ~Same | C++ capable | Mobile, Prod |
+| ONNX | Varies | Faster | Any framework | Edge, Cloud |
+| ONNX + INT8 | Smallest | Fastest | Any framework | Edge devices |
+
+## Export Best Practices
+
+### 1. Validate Exported Model
+
+```python
+import torch
+
+# Original predictions
+original_out = model.predict(test_input)
+
+# Load exported model
+exported = torch.jit.load("model_scripted.pt")
+exported_out = exported(test_input)
+
+# Compare
+assert torch.allclose(original_out, exported_out, rtol=1e-3)
+```
+
+### 2. Fixed Input Size for ONNX
+
+```python
+# Fixed batch size (faster)
+model.export("model_fixed.onnx", format="onnx", dynamic_axes=False)
+
+# Dynamic batch size (flexible)
+model.export("model_dynamic.onnx", format="onnx", dynamic_axes=True)
+```
+
+### 3. Include Preprocessing
+
+Create a combined model with preprocessing:
+
+```python
+# Coming in Phase 2
+model.export("model_with_preprocess.onnx", include_preprocessing=True)
+```
+
+## Deployment Targets
+
+### Server Deployment
+
+```python
+# ONNX for best CPU performance
+model.export("model.onnx", format="onnx")
+
+# Use with ONNX Runtime or TensorRT
+```
+
+### Mobile Deployment (iOS/Android)
+
+```python
+# TorchScript for mobile
+model.export("model.pt", format="torchscript")
+
+# Then convert:
+# iOS: Use coremltools to convert to CoreML
+# Android: Use TorchScript directly or convert to TFLite
+```
+
+### Edge Deployment (Raspberry Pi, Jetson)
+
+```python
+# ONNX with INT8 quantization
+model.quantize(bits=8)
+model.export("model_int8.onnx", format="onnx")
+```
+
+### Web Deployment
+
+```python
+# ONNX for ONNX.js
+model.export("model.onnx", format="onnx")
+
+# Then use onnxruntime-web in browser
+```
+
+## Complete Export Example
+
+```python
+from kitepy import CNN
+
+# Train model
+model = CNN("resnet18")
+model.train("cifar10", epochs=10)
+
+# Save kitepy format (for continued development)
+model.save("checkpoints/model.pt")
+
+# Export TorchScript (for Python-free deployment)
+model.export("exports/model_scripted.pt", format="torchscript")
+
+# Export ONNX (for cross-platform)
+model.export("exports/model.onnx", format="onnx")
+
+# Export quantized (for edge devices)
+model.quantize(bits=8)
+model.export("exports/model_int8.onnx", format="onnx")
+
+print("✓ Exported all formats!")
+```

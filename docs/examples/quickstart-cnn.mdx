@@ -1,0 +1,149 @@
+---
+title: 'Quickstart CNN'
+description: 'Complete CNN training example'
+icon: 'play'
+---
+
+## Overview
+
+This example shows how to train a CNN on CIFAR-10 from scratch.
+
+## Full Code
+
+```python
+"""
+Quickstart example for CNN training.
+"""
+from kitepy import CNN, print_device_info, print_version_info
+
+def main():
+    # Print environment info
+    print_version_info()
+    print_device_info()
+    
+    # Simplest usage: one line!
+    print("\n" + "="*70)
+    print("Example 1: Simplest Possible Usage")
+    print("="*70)
+    
+    model = CNN("resnet18")
+    model.train("cifar10", epochs=2)
+    
+    print("\n✓ Example 1 complete!")
+    
+    
+    # With custom settings
+    print("\n" + "="*70)
+    print("Example 2: With Custom Settings")
+    print("="*70)
+    
+    model = CNN("resnet18", num_classes=10)
+    model.train(
+        data="cifar10",
+        epochs=5,
+        batch_size=128,
+        lr=0.001,
+    )
+    
+    print("\n✓ Example 2 complete!")
+    
+    
+    # Save and Load
+    print("\n" + "="*70)
+    print("Example 3: Save and Load")
+    print("="*70)
+    
+    model = CNN("resnet18", num_classes=10)
+    model.train("cifar10", epochs=2)
+    
+    # Save it
+    model.save("checkpoints/my_resnet18.pt")
+    
+    # Load it back
+    loaded_model = CNN.load("checkpoints/my_resnet18.pt")
+    
+    # Use for inference
+    import torch
+    dummy_input = torch.randn(1, 3, 32, 32)
+    output = loaded_model.predict(dummy_input)
+    print(f"\nPrediction output shape: {output.shape}")
+    
+    print("\n✓ Example 3 complete!")
+
+if __name__ == "__main__":
+    main()
+```
+
+## Step-by-Step Explanation
+
+### 1. Import kitepy
+
+```python
+from kitepy import CNN, print_device_info, print_version_info
+```
+
+### 2. Check Environment
+
+```python
+print_version_info()  # Shows package versions
+print_device_info()   # Shows GPU info
+```
+
+### 3. Train a Model
+
+```python
+model = CNN("resnet18")
+model.train("cifar10", epochs=2)
+```
+
+### 4. Customize Training
+
+```python
+model.train(
+    data="cifar10",
+    epochs=5,
+    batch_size=128,
+    lr=0.001,
+)
+```
+
+### 5. Save and Load
+
+```python
+model.save("my_model.pt")
+loaded = CNN.load("my_model.pt")
+```
+
+## Expected Output
+
+```
+========================================
+📦 Package Versions
+========================================
+  kitepy:      0.1.0
+  PyTorch:    2.1.0
+
+========================================
+🖥️  Device Information
+========================================
+  Available:  cuda:0
+
+======================================================================
+Example 1: Simplest Possible Usage
+======================================================================
+✓ Created CNN model: resnet18
+  - Architecture: resnet
+  - Parameters: 11,689,512
+
+Epoch 1/2: ...
+Epoch 2/2: ...
+
+✓ Example 1 complete!
+```
+
+## Run This Example
+
+```bash
+cd examples/vision
+python quickstart_cnn.py
+```

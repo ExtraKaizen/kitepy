@@ -1,0 +1,298 @@
+---
+title: 'Callbacks'
+description: 'Customize training behavior with callbacks'
+icon: 'plug'
+---
+
+## Overview
+
+Callbacks allow you to inject custom behavior at various points during training. kitepy provides several built-in callbacks and supports custom callbacks.
+
+## Built-in Callbacks
+
+### EarlyStopping
+
+Stop training when a metric stops improving:
+
+```python
+from kitepy.core.callbacks import EarlyStopping
+
+early_stop = EarlyStopping(
+    monitor='val_loss',     # Metric to monitor
+    patience=5,             # Epochs to wait for improvement
+    min_delta=1e-4,         # Minimum change to qualify as improvement
+    mode='min',             # 'min' or 'max'
+)
+
+model.train("cifar10", callbacks=[early_stop])
+```
+
+### ModelCheckpoint
+
+Save model checkpoints during training:
+
+```python
+from kitepy.core.callbacks import ModelCheckpoint
+
+checkpoint = ModelCheckpoint(
+    filepath="checkpoints/model_{epoch:02d}_{val_loss:.4f}.pt",
+    monitor='val_loss',
+    save_best_only=False,   # Save all epochs
+    save_top_k=3,           # Keep best 3
+    mode='min',
+)
+
+model.train("cifar10", callbacks=[checkpoint])
+```
+
+Filepath patterns:
+- `{epoch}` - Current epoch number
+- `{val_loss}` - Validation loss
+- `{train_loss}` - Training loss
+
+### LRMonitor
+
+Log learning rate at each epoch:
+
+```python
+from kitepy.core.callbacks import LRMonitor
+
+lr_monitor = LRMonitor()
+model.train("cifar10", callbacks=[lr_monitor])
+```
+
+Output:
+```
+Epoch 1: ...
+  → Learning rate: 1.00e-03
+Epoch 2: ...
+  → Learning rate: 9.75e-04
+```
+
+### ProgressLogger
+
+Log training progress at intervals:
+
+```python
+from kitepy.core.callbacks import ProgressLogger
+
+logger = ProgressLogger(log_every_n_steps=50)
+model.train("cifar10", callbacks=[logger])
+```
+
+### WandbLogger
+
+Log to Weights & Biases:
+
+```python
+from kitepy.core.callbacks import WandbLogger
+
+wandb_logger = WandbLogger(
+    project="my-project",
+    name="experiment-1",
+    config={"lr": 0.001, "batch_size": 32}
+)
+
+model.train("cifar10", callbacks=[wandb_logger])
+```
+
+<Note>
+Requires: `pip install wandb`
+</Note>
+
+### TensorBoardLogger
+
+Log to TensorBoard:
+
+```python
+from kitepy.core.callbacks import TensorBoardLogger
+
+tb_logger = TensorBoardLogger(log_dir="runs/experiment1")
+model.train("cifar10", callbacks=[tb_logger])
+```
+
+View with:
+```bash
+tensorboard --logdir runs
+```
+
+## Combining Callbacks
+
+Use multiple callbacks together:
+
+```python
+from kitepy.core.callbacks import (
+    EarlyStopping,
+    ModelCheckpoint,
+    LRMonitor,
+    WandbLogger
+)
+
+callbacks = [
+    EarlyStopping(monitor='val_loss', patience=10),
+    ModelCheckpoint(filepath="checkpoints/best.pt", save_best_only=True),
+    LRMonitor(),
+    WandbLogger(project="cifar10-experiments"),
+]
+
+model.train("cifar10", callbacks=callbacks)
+```
+
+## Custom Callbacks
+
+Create your own callback by inheriting from `Callback`:
+
+```python
+from kitepy.core.callbacks import Callback
+
+class MyCallback(Callback):
+    def on_train_start(self, trainer, **kwargs):
+        """Called at the start of training."""
+        print("Training started!")
+    
+    def on_train_end(self, trainer, **kwargs):
+        """Called at the end of training."""
+        print("Training ended!")
+    
+    def on_epoch_start(self, trainer, epoch, **kwargs):
+        """Called at the start of each epoch."""
+        print(f"Epoch {epoch} starting...")
+    
+    def on_epoch_end(self, trainer, epoch, metrics, **kwargs):
+        """Called at the end of each epoch."""
+        print(f"Epoch {epoch}: loss={metrics['train_loss']:.4f}")
+    
+    def on_batch_start(self, trainer, batch_idx, **kwargs):
+        """Called at the start of each batch."""
+        pass
+    
+    def on_batch_end(self, trainer, batch_idx, loss, **kwargs):
+        """Called at the end of each batch."""
+        pass
+    
+    def on_validation_start(self, trainer, **kwargs):
+        """Called at the start of validation."""
+        pass
+    
+    def on_validation_end(self, trainer, metrics, **kwargs):
+        """Called at the end of validation."""
+        pass
+
+# Use it
+model.train("cifar10", callbacks=[MyCallback()])
+```
+
+## LambdaCallback
+
+Quick callbacks without a custom class:
+
+```python
+from kitepy.core.callbacks import LambdaCallback
+
+# Log to file
+def log_to_file(trainer, epoch, metrics, **kwargs):
+    with open("training_log.txt", "a") as f:
+        f.write(f"Epoch {epoch}: {metrics}\n")
+
+callback = LambdaCallback(on_epoch_end=log_to_file)
+model.train("cifar10", callbacks=[callback])
+```
+
+## Callback Lifecycle
+
+Here's when each callback method is called:
+
+```
+Training starts
+├── on_train_start()
+│
+├── Epoch 1
+│   ├── on_epoch_start(epoch=1)
+│   │
+│   ├── Batch 1
+│   │   ├── on_batch_start(batch_idx=0)
+│   │   └── on_batch_end(batch_idx=0, loss=...)
+│   ├── Batch 2
+│   │   └── ...
+│   │
+│   ├── Validation
+│   │   ├── on_validation_start()
+│   │   └── on_validation_end(metrics=...)
+│   │
+│   └── on_epoch_end(epoch=1, metrics=...)
+│
+├── Epoch 2
+│   └── ...
+│
+└── on_train_end()
+```
+
+## Practical Examples
+
+### Gradient Logging
+
+```python
+class GradientLogger(Callback):
+    def on_epoch_end(self, trainer, epoch, metrics, **kwargs):
+        total_norm = 0
+        for p in trainer.model.parameters():
+            if p.grad is not None:
+                total_norm += p.grad.data.norm(2).item() ** 2
+        total_norm = total_norm ** 0.5
+        print(f"  → Gradient norm: {total_norm:.4f}")
+```
+
+### Learning Rate Finder Logging
+
+```python
+class LRLogger(Callback):
+    def __init__(self):
+        self.lrs = []
+        self.losses = []
+    
+    def on_batch_end(self, trainer, batch_idx, loss, **kwargs):
+        lr = trainer.optimizer.param_groups[0]['lr']
+        self.lrs.append(lr)
+        self.losses.append(loss)
+    
+    def on_train_end(self, trainer, **kwargs):
+        import matplotlib.pyplot as plt
+        plt.plot(self.lrs, self.losses)
+        plt.xscale('log')
+        plt.xlabel('Learning Rate')
+        plt.ylabel('Loss')
+        plt.savefig('lr_finder.png')
+```
+
+### Model Freezing Schedule
+
+```python
+class GradualUnfreeze(Callback):
+    def __init__(self, unfreeze_epoch=10):
+        self.unfreeze_epoch = unfreeze_epoch
+    
+    def on_epoch_start(self, trainer, epoch, **kwargs):
+        if epoch == self.unfreeze_epoch:
+            # Unfreeze all layers
+            for param in trainer.model.parameters():
+                param.requires_grad = True
+            print(f"✓ Unfroze all layers at epoch {epoch}")
+```
+
+## Callback Priority (CallbackList)
+
+Manage multiple callbacks:
+
+```python
+from kitepy.core.callbacks import CallbackList
+
+callback_list = CallbackList([
+    EarlyStopping(patience=10),
+    ModelCheckpoint(filepath="best.pt"),
+    MyCallback(),
+])
+
+# Check if any callback wants to stop training
+if callback_list.should_stop():
+    break
+```
