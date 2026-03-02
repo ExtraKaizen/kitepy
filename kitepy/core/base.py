@@ -405,28 +405,6 @@ model = {self.__class__.__name__}(
 )
         """)
     
-    def export(self, path: str, format: str = "onnx"):
-        """
-        Export model to different formats.
-        
-        Args:
-            path: Export path
-            format: Export format ("onnx", "torchscript")
-        """
-        if self.model is None:
-            raise RuntimeError("Model not initialized.")
-        
-        self.model.eval()
-        
-        if format == "onnx":
-            # TODO: Implement ONNX export
-            raise NotImplementedError("ONNX export coming in Phase 2")
-        elif format == "torchscript":
-            # TODO: Implement TorchScript export
-            raise NotImplementedError("TorchScript export coming in Phase 2")
-        else:
-            raise ValueError(f"Unknown export format: {format}")
-    
     def compile(self, mode: str = "default"):
         """
         Compile model for faster inference (PyTorch 2.0+).
