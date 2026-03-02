@@ -187,8 +187,8 @@ kitepy/
 Once everything works:
 
 1. ✅ CNN module is ready!
-2. ⏭️ Next: Vision Transformers (Coming Soon)
-3. ⏭️ Planned: LLM and VLM support
+2. ✅ Vision Transformers are ready!
+3. ⏭️ Next: LLM and VLM support (Coming Soon)
 
 ---
 

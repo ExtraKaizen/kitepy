@@ -279,8 +279,8 @@ kitepy/
 ## Development Roadmap
 
 - [x] **Phase 1**: CNN Module ✅
-- [ ] **Phase 2**: Vision Transformers (Coming Soon)
-- [ ] **Phase 3**: LLM Module (Planned)
+- [x] **Phase 2**: Vision Transformers ✅
+- [ ] **Phase 3**: LLM Module (Coming Soon)
 - [ ] **Phase 4**: VLM Module (Planned)
 - [ ] **Phase 5**: Audio & Diffusion (Planned)
 
