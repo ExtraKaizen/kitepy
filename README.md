@@ -16,9 +16,9 @@ That's it. No boilerplate. No configuration hell. Just magic. ✨
 - **🎯 One-Line Training**: `CNN("resnet18").train("cifar10")`
 - **🔧 Zero Configuration**: Smart defaults that just work
 - **🎨 Full Customization**: Override anything when needed
-- **🌐 Multi-Modal**: CNNs, Transformers, LLMs, VLMs (coming soon)
-- **⚡ Production Ready**: Built on PyTorch, timm, HuggingFace
-- **🚄 Fast**: Automatic mixed precision, multi-GPU, distributed training
+- **🌐 Multi-Modal**: CNNs & Transformers (LLMs, VLMs coming soon)
+- **⚡ Production Ready**: Built on PyTorch and timm (HuggingFace coming soon)
+- **🚄 Fast**: Automatic mixed precision (multi-GPU & distributed coming soon)
 
 ---
 
