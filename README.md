@@ -297,7 +297,7 @@ kitepy/
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](https://github.com/ExtraKaizen/kitepy/blob/main/CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
